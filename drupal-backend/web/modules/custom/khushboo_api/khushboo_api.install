@@ -1,0 +1,371 @@
+<?php
+
+/**
+ * @file
+ * Install and schema hooks for Khushboo Pathshala API.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function khushboo_api_schema() {
+  $schema = [];
+
+  $schema['kp_users'] = [
+    'description' => 'Khushboo Pathshala platform users.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'email' => ['type' => 'varchar', 'length' => 191, 'not null' => TRUE],
+      'password_hash' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'name' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'role' => ['type' => 'varchar', 'length' => 32, 'default' => 'STUDENT', 'not null' => TRUE],
+      'phone' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'gender' => ['type' => 'varchar', 'length' => 32, 'not null' => FALSE],
+      'date_of_birth' => ['type' => 'varchar', 'length' => 32, 'not null' => FALSE],
+      'education_level' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'avatar' => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'bio' => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'hobbies' => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'skills' => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'profile_completed' => ['type' => 'int', 'size' => 'tiny', 'default' => 0, 'not null' => TRUE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+      'updated_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['email' => ['email']],
+    'indexes' => ['role' => ['role']],
+  ];
+
+  $schema['kp_batches'] = [
+    'description' => 'Student and mentor batches.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'name' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'description' => ['type' => 'text', 'not null' => FALSE],
+      'code' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'start_date' => ['type' => 'varchar', 'length' => 32, 'not null' => FALSE],
+      'end_date' => ['type' => 'varchar', 'length' => 32, 'not null' => FALSE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+      'updated_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  $schema['kp_batch_students'] = [
+    'description' => 'Students enrolled in batches.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'batch_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'user_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'joined_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'batch_user' => ['batch_id', 'user_id'],
+      'user_idx' => ['user_id'],
+    ],
+  ];
+
+  $schema['kp_batch_mentors'] = [
+    'description' => 'Mentors assigned to batches.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'batch_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'user_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'assigned_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'batch_mentor' => ['batch_id', 'user_id'],
+      'mentor_idx' => ['user_id'],
+    ],
+  ];
+
+  $schema['kp_resources'] = [
+    'description' => 'Learning courses, sessions, and materials.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'title' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'description' => ['type' => 'text', 'size' => 'big', 'not null' => FALSE],
+      'category' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'video_url' => ['type' => 'text', 'not null' => FALSE],
+      'duration' => ['type' => 'int', 'default' => 0, 'not null' => TRUE],
+      'thumbnail_url' => ['type' => 'text', 'not null' => FALSE],
+      'lessons_count' => ['type' => 'int', 'default' => 1, 'not null' => TRUE],
+      'lessons' => ['type' => 'text', 'size' => 'big', 'not null' => FALSE],
+      'is_hot' => ['type' => 'int', 'size' => 'tiny', 'default' => 0, 'not null' => TRUE],
+      'type' => ['type' => 'varchar', 'length' => 32, 'default' => 'COURSE', 'not null' => TRUE],
+      'batch_id' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'uploaded_by_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+      'updated_at' => ['type' => 'int', 'not null' => TRUE],
+      'deleted_at' => ['type' => 'int', 'not null' => FALSE],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'category_idx' => ['category'],
+      'batch_idx' => ['batch_id'],
+      'type_idx' => ['type'],
+    ],
+  ];
+
+  $schema['kp_session_tracking'] = [
+    'description' => 'Student video progress and auto attendance.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'user_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'resource_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'watch_duration' => ['type' => 'int', 'default' => 0, 'not null' => TRUE],
+      'total_duration' => ['type' => 'int', 'default' => 0, 'not null' => TRUE],
+      'drop_off_point' => ['type' => 'int', 'default' => 0, 'not null' => TRUE],
+      'completion_percentage' => ['type' => 'int', 'default' => 0, 'not null' => TRUE],
+      'attendance_marked' => ['type' => 'int', 'size' => 'tiny', 'default' => 0, 'not null' => TRUE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+      'updated_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'user_resource' => ['user_id', 'resource_id'],
+    ],
+  ];
+
+  $schema['kp_mentorship'] = [
+    'description' => 'Mentor-mentee relations.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'mentor_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'mentee_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'assigned_at' => ['type' => 'int', 'not null' => TRUE],
+      'status' => ['type' => 'varchar', 'length' => 32, 'default' => 'ACTIVE', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  $schema['kp_meetings'] = [
+    'description' => 'Scheduled mentorship meetings.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'mentor_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'mentee_id' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'batch_id' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'title' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'description' => ['type' => 'text', 'not null' => FALSE],
+      'meeting_link' => ['type' => 'text', 'not null' => FALSE],
+      'scheduled_at' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'status' => ['type' => 'varchar', 'length' => 32, 'default' => 'SCHEDULED', 'not null' => TRUE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  $schema['kp_assignments'] = [
+    'description' => 'Batch assignments.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'title' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'description' => ['type' => 'text', 'size' => 'big', 'not null' => FALSE],
+      'batch_id' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'due_date' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'created_by_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+      'updated_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  $schema['kp_assignment_submissions'] = [
+    'description' => 'Student submissions for assignments.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'assignment_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'student_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'submission_url' => ['type' => 'text', 'not null' => FALSE],
+      'file_path' => ['type' => 'text', 'not null' => FALSE],
+      'notes' => ['type' => 'text', 'not null' => FALSE],
+      'grade' => ['type' => 'varchar', 'length' => 32, 'not null' => FALSE],
+      'feedback' => ['type' => 'text', 'not null' => FALSE],
+      'status' => ['type' => 'varchar', 'length' => 32, 'default' => 'SUBMITTED', 'not null' => TRUE],
+      'submitted_at' => ['type' => 'int', 'not null' => TRUE],
+      'reviewed_at' => ['type' => 'int', 'not null' => FALSE],
+      'reviewed_by_id' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'sub_assign_student' => ['assignment_id', 'student_id'],
+    ],
+  ];
+
+  $schema['kp_quizzes'] = [
+    'description' => 'Quizzes and assessments.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'title' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'description' => ['type' => 'text', 'not null' => FALSE],
+      'batch_id' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'created_by_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'duration_minutes' => ['type' => 'int', 'default' => 30, 'not null' => TRUE],
+      'passing_score' => ['type' => 'int', 'default' => 70, 'not null' => TRUE],
+      'questions' => ['type' => 'text', 'size' => 'big', 'not null' => FALSE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  $schema['kp_quiz_submissions'] = [
+    'description' => 'Student quiz attempts and scores.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'quiz_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'student_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'score' => ['type' => 'int', 'default' => 0, 'not null' => TRUE],
+      'total_score' => ['type' => 'int', 'default' => 0, 'not null' => TRUE],
+      'passed' => ['type' => 'int', 'size' => 'tiny', 'default' => 0, 'not null' => TRUE],
+      'answers' => ['type' => 'text', 'size' => 'big', 'not null' => FALSE],
+      'submitted_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  $schema['kp_forum_posts'] = [
+    'description' => 'Q&A discussion forum posts.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'user_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'batch_id' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'title' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'content' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE],
+      'tags' => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE],
+      'upvotes' => ['type' => 'int', 'default' => 0, 'not null' => TRUE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+      'updated_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  $schema['kp_forum_answers'] = [
+    'description' => 'Answers to forum posts.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'post_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'user_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'content' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE],
+      'upvotes' => ['type' => 'int', 'default' => 0, 'not null' => TRUE],
+      'is_accepted' => ['type' => 'int', 'size' => 'tiny', 'default' => 0, 'not null' => TRUE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'post_idx' => ['post_id'],
+    ],
+  ];
+
+  $schema['kp_announcements'] = [
+    'description' => 'Platform announcements.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'title' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'content' => ['type' => 'text', 'not null' => TRUE],
+      'priority' => ['type' => 'varchar', 'length' => 32, 'default' => 'NORMAL', 'not null' => TRUE],
+      'author_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'batch_id' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  $schema['kp_chat_groups'] = [
+    'description' => 'Chat groups and channels.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'name' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'type' => ['type' => 'varchar', 'length' => 32, 'default' => 'GROUP', 'not null' => TRUE],
+      'batch_id' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'created_by_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  $schema['kp_chat_members'] = [
+    'description' => 'Chat group members.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'group_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'user_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'role' => ['type' => 'varchar', 'length' => 32, 'default' => 'MEMBER', 'not null' => TRUE],
+      'joined_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'group_user' => ['group_id', 'user_id'],
+    ],
+  ];
+
+  $schema['kp_chat_messages'] = [
+    'description' => 'Messages inside chat groups.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'group_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'sender_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'content' => ['type' => 'text', 'size' => 'big', 'not null' => FALSE],
+      'attachments' => ['type' => 'text', 'size' => 'big', 'not null' => FALSE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'group_idx' => ['group_id', 'created_at'],
+    ],
+  ];
+
+  $schema['kp_notifications'] = [
+    'description' => 'In-app user notifications.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'user_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'title' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'message' => ['type' => 'text', 'not null' => TRUE],
+      'type' => ['type' => 'varchar', 'length' => 32, 'default' => 'INFO', 'not null' => TRUE],
+      'is_read' => ['type' => 'int', 'size' => 'tiny', 'default' => 0, 'not null' => TRUE],
+      'link' => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'user_unread' => ['user_id', 'is_read'],
+    ],
+  ];
+
+  $schema['kp_roadmaps'] = [
+    'description' => 'AI-generated study roadmaps.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'user_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'topic' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'days' => ['type' => 'int', 'not null' => TRUE],
+      'content' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'user_roadmap' => ['user_id'],
+    ],
+  ];
+
+  $schema['kp_login_logs'] = [
+    'description' => 'User login and activity logs for analytics and heatmap.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'user_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'ip_address' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'user_agent' => ['type' => 'text', 'not null' => FALSE],
+      'created_at' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'user_log' => ['user_id', 'created_at'],
+    ],
+  ];
+
+  return $schema;
+}
+

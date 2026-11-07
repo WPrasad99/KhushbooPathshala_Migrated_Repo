@@ -1,0 +1,14 @@
+services:
+  khushboo_api.jwt:
+    class: Drupal\khushboo_api\Service\JwtAuthService
+    arguments: ['@database']
+
+  khushboo_api.gemini:
+    class: Drupal\khushboo_api\Service\GeminiService
+    arguments: ['@http_client']
+
+  khushboo_api.cors_subscriber:
+    class: Drupal\khushboo_api\EventSubscriber\CorsSubscriber
+    tags:
+      - { name: event_subscriber }
+

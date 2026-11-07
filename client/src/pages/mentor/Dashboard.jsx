@@ -12,15 +12,7 @@ import MenteesList from './components/MenteesList';
 import MeetingsList from './components/MeetingsList';
 import SessionsList from './components/SessionsList';
 import AssignmentsList from './components/AssignmentsList';
-
-// Placeholder for Forum
-const ForumPlaceholder = () => (
-    <div className="m-empty-state">
-        <MessageSquare size={48} />
-        <h3 className="m-empty-state__title">Discussion Forum</h3>
-        <p className="m-empty-state__desc">The community discussion board will be available soon. Stay tuned for updates!</p>
-    </div>
-);
+import MentorForum from './components/MentorForum';
 
 const MentorDashboard = () => {
     const { user, logout } = useAuth();
@@ -67,11 +59,10 @@ const MentorDashboard = () => {
             case 'mentorship': return <MenteesList />;
             case 'sessions': return <SessionsList />;
             case 'assignments': return <AssignmentsList />;
-            case 'forum': return <ForumPlaceholder />;
+            case 'forum': return <MentorForum />;
             default: return <Overview />;
         }
     };
-
 
     return (
         <div className="mentor-container">

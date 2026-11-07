@@ -59,6 +59,11 @@ export const mentorService = {
         return response.data;
     },
 
+    deleteAssignment: async (id) => {
+        const response = await api.delete(`/assignments/${id}`);
+        return response.data;
+    },
+
     getQuizzes: async (batchId) => {
         const response = await api.get('/quizzes/mentor', { params: { batchId } });
         return response.data;

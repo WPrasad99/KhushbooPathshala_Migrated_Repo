@@ -910,3 +910,300 @@
         align-items: center;
     }
 }
+
+
+/* ================================================================
+   FLUID LOGIN THEME — Modern Studio Minimal Design (Zoomed Out Parity)
+   ================================================================ */
+.fluid-auth-container {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    min-height: 600px;
+    background: #ffffff;
+    overflow: hidden;
+    position: relative;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Left Form Column — Zoomed Out & Minimal */
+.fluid-auth-left {
+    flex: 1;
+    min-width: 300px;
+    max-width: 520px;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 36px clamp(24px, 4.5vw, 56px);
+    background: #ffffff;
+    overflow-y: auto;
+    z-index: 2;
+    box-sizing: border-box;
+}
+
+.fluid-form-wrapper {
+    width: 100%;
+    max-width: 330px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Main Title */
+.fluid-auth-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 24px 0;
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+    text-align: left;
+}
+
+/* Error Alert */
+.fluid-auth-error {
+    background: #fef2f2;
+    border: 1px solid #fee2e2;
+    color: #dc2626;
+    padding: 9px 12px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    margin-bottom: 16px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+}
+
+/* Form Groups & Inputs */
+.fluid-login-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.fluid-form-group {
+    margin-bottom: 16px;
+    text-align: left;
+    width: 100%;
+}
+
+.fluid-form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+    margin-bottom: 5px;
+}
+
+.fluid-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.fluid-input-icon {
+    position: absolute;
+    left: 12px;
+    color: #94a3b8;
+    font-size: 16px;
+    pointer-events: none;
+    transition: color 0.2s ease;
+}
+
+.fluid-input-wrapper:focus-within .fluid-input-icon {
+    color: #3557ff;
+}
+
+.fluid-input-wrapper input {
+    width: 100%;
+    height: 42px;
+    padding: 0 36px 0 38px;
+    border: 1.2px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 13.5px;
+    color: #0f172a;
+    background: #ffffff;
+    transition: all 0.2s ease;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.fluid-input-wrapper input:focus {
+    border-color: #3557ff;
+    box-shadow: 0 0 0 3px rgba(53, 87, 255, 0.10);
+}
+
+.fluid-input-wrapper input::placeholder {
+    color: #94a3b8;
+    opacity: 0.85;
+}
+
+.fluid-password-toggle {
+    position: absolute;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    font-size: 15px;
+    transition: color 0.2s ease;
+}
+
+.fluid-password-toggle:hover {
+    color: #475569;
+}
+
+/* Submit Button */
+.fluid-submit-btn {
+    width: 100%;
+    height: 42px;
+    background: #3557ff;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 12px rgba(53, 87, 255, 0.22);
+}
+
+.fluid-submit-btn:hover:not(:disabled) {
+    background: #2546e8;
+    box-shadow: 0 5px 16px rgba(53, 87, 255, 0.32);
+    transform: translateY(-1px);
+}
+
+.fluid-submit-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.fluid-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Divider Line */
+.fluid-divider-line {
+    width: 100%;
+    height: 1px;
+    background: #f1f5f9;
+    margin: 28px 0 20px 0;
+}
+
+/* Bottom Help Section */
+.fluid-help-section {
+    text-align: left;
+    width: 100%;
+}
+
+.fluid-help-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.fluid-help-badge {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #0f172a;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    margin-right: 7px;
+    flex-shrink: 0;
+}
+
+.fluid-help-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.fluid-help-desc {
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.45;
+    margin: 0 0 10px 0;
+    max-width: 300px;
+}
+
+.fluid-help-link {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #3557ff;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.fluid-help-link:hover {
+    text-decoration: underline;
+    color: #2546e8;
+}
+
+/* Right Visual Column with Smooth Curved Edge & Full-Size Image */
+.fluid-auth-right {
+    flex: 1.25;
+    height: 100vh;
+    border-top-left-radius: 90px;
+    position: relative;
+    overflow: hidden;
+    background: #eef2f7;
+    padding: 0;
+    margin: 0;
+}
+
+.fluid-visual-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    display: block;
+    user-select: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+@keyframes fluidFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 960px) {
+    .fluid-auth-right {
+        display: none;
+    }
+
+    .fluid-auth-left {
+        max-width: 100%;
+        width: 100%;
+        padding: 40px 24px;
+        align-items: center;
+    }
+
+    .fluid-form-wrapper {
+        max-width: 400px;
+    }
+
+    .fluid-auth-title {
+        font-size: 28px;
+    }
+}

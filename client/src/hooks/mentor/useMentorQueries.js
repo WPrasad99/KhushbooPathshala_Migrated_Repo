@@ -114,3 +114,15 @@ export const useCreateQuiz = () => {
         }
     });
 };
+
+
+export const useDeleteAssignment = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: mentorService.deleteAssignment,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['mentor', 'assignments'] });
+            queryClient.invalidateQueries({ queryKey: ['mentor', 'batches'] });
+        }
+    });
+};

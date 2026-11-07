@@ -1,0 +1,9 @@
+name: 'Khushboo Pathshala API'
+type: module
+description: 'Enterprise Decoupled REST API for Khushboo Pathshala React Client'
+core_version_requirement: ^10 || ^11
+package: 'Custom'
+dependencies:
+  - drupal:serialization
+  - drupal:rest
+

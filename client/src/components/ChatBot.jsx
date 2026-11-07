@@ -78,7 +78,7 @@ const ChatBot = () => {
 
             console.log('[ChatBot] API Response received:', response.data);
 
-            const answer = response.data?.message || response.data?.answer;
+            const answer = response.data?.reply || response.data?.message || response.data?.answer;
 
             // Validate response
             if (!response.data || !answer) {

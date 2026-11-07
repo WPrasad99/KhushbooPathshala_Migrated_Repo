@@ -1,0 +1,711 @@
+# Khushboo Pathshala API Routes
+
+khushboo_api.health:
+  path: '/api/health'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AuthController::health'
+  requirements:
+    _access: 'TRUE'
+
+# ── Auth ──────────────────────────────
+khushboo_api.auth_login:
+  path: '/api/auth/login'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AuthController::login'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.auth_register:
+  path: '/api/auth/register'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AuthController::register'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.auth_me:
+  path: '/api/auth/me'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AuthController::me'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+# ── User Profile & Dashboard ───────────
+khushboo_api.user_me:
+  path: '/api/users/me'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\UserController::me'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.user_profile:
+  path: '/api/users/profile'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\UserController::updateProfile'
+  methods: [PUT, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.user_avatar:
+  path: '/api/users/avatar'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\UserController::uploadAvatar'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.user_password:
+  path: '/api/users/password'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\UserController::changePassword'
+  methods: [PUT, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.user_login_history:
+  path: '/api/users/login-history'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\UserController::loginHistory'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.user_dashboard:
+  path: '/api/users/dashboard'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\UserController::dashboard'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+# ── Student ───────────────────────────
+khushboo_api.student_dashboard:
+  path: '/api/student/dashboard'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\StudentController::dashboard'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.student_resources:
+  path: '/api/student/resources'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\StudentController::resources'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.student_batches:
+  path: '/api/student/batches'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\StudentController::batches'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+# ── Resources ─────────────────────────
+khushboo_api.resources_list:
+  path: '/api/resources'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ResourceController::getAll'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.resources_create:
+  path: '/api/resources'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ResourceController::createResource'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.resources_get:
+  path: '/api/resources/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ResourceController::getOne'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.resources_track:
+  path: '/api/resources/{id}/track'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ResourceController::trackProgress'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+# ── Sessions ──────────────────────────
+khushboo_api.sessions_list:
+  path: '/api/sessions'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\SessionController::getAll'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.sessions_tracking:
+  path: '/api/sessions/tracking'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\SessionController::getTracking'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+# ── Mentor ────────────────────────────
+khushboo_api.mentor_batches:
+  path: '/api/mentor/batches'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\MentorController::getBatches'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.mentor_students:
+  path: '/api/mentor/students'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\MentorController::getStudents'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.mentor_meetings_get:
+  path: '/api/mentor/meetings'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\MentorController::getMeetings'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.mentor_meetings_post:
+  path: '/api/mentor/meetings'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\MentorController::scheduleMeeting'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.mentor_sessions_upload:
+  path: '/api/mentor/sessions/upload'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\MentorController::uploadSession'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.mentor_resources_upload:
+  path: '/api/mentor/resources/upload'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\MentorController::uploadResource'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.mentor_uploads_get:
+  path: '/api/mentor/uploads'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\MentorController::getUploads'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.mentor_uploads_delete:
+  path: '/api/mentor/uploads/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\MentorController::deleteUpload'
+  methods: [DELETE, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+# ── Mentorship ────────────────────────
+khushboo_api.mentorship_get:
+  path: '/api/mentorship'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\MentorshipController::getMentorship'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.mentorship_meetings_get:
+  path: '/api/mentorship/meetings'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\MentorshipController::getMeetings'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.mentorship_meetings_post:
+  path: '/api/mentorship/meetings'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\MentorshipController::createMeeting'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.mentorship_message:
+  path: '/api/mentorship/message'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\MentorshipController::sendMessage'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+# ── Assignments ───────────────────────
+khushboo_api.assignments_get:
+  path: '/api/assignments'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AssignmentController::getAll'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.assignments_post:
+  path: '/api/assignments'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AssignmentController::createAssignment'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.assignments_detail:
+  path: '/api/assignments/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AssignmentController::getOne'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.assignments_submit:
+  path: '/api/assignments/{id}/submit'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AssignmentController::submitAssignment'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.assignments_review:
+  path: '/api/assignments/submissions/{submissionId}/review'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AssignmentController::reviewSubmission'
+  methods: [PUT, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.assignments_delete:
+  path: '/api/assignments/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AssignmentController::deleteAssignment'
+  methods: [DELETE, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+# ── Quizzes ───────────────────────────
+khushboo_api.quizzes_post:
+  path: '/api/quizzes'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\QuizController::createQuiz'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.quizzes_mentor:
+  path: '/api/quizzes/mentor'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\QuizController::getMentorQuizzes'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.quizzes_student:
+  path: '/api/quizzes/student'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\QuizController::getStudentQuizzes'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.quizzes_detail:
+  path: '/api/quizzes/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\QuizController::getQuizDetails'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.quizzes_start:
+  path: '/api/quizzes/{id}/start'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\QuizController::startQuiz'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.quizzes_submit:
+  path: '/api/quizzes/{id}/submit'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\QuizController::submitQuiz'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+# ── Forum ─────────────────────────────
+khushboo_api.forum_posts_get:
+  path: '/api/forum/posts'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ForumController::getPosts'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.forum_posts_post:
+  path: '/api/forum/posts'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ForumController::createPost'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.forum_post_detail:
+  path: '/api/forum/posts/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ForumController::getPostById'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.forum_answer_post:
+  path: '/api/forum/posts/{postId}/answers'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ForumController::createAnswer'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.forum_answer_upvote:
+  path: '/api/forum/answers/{answerId}/upvote'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ForumController::upvoteAnswer'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.forum_post_upvote:
+  path: '/api/forum/posts/{id}/upvote'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ForumController::upvotePost'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.forum_post_delete:
+  path: '/api/forum/posts/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ForumController::deletePost'
+  methods: [DELETE, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+# ── Chat ──────────────────────────────
+khushboo_api.chat_groups_get:
+  path: '/api/chat/groups'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::getGroups'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.chat_groups_post:
+  path: '/api/chat/groups'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::createGroup'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.chat_direct:
+  path: '/api/chat/groups/direct'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::createDirect'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.chat_batch:
+  path: '/api/chat/groups/batch'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::createBatchGroup'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.chat_messages_get:
+  path: '/api/chat/groups/{groupId}/messages'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::getMessages'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.chat_messages_post:
+  path: '/api/chat/groups/{groupId}/messages'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::sendMessage'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.chat_upload:
+  path: '/api/chat/upload'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::upload'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.chat_users:
+  path: '/api/chat/users'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::getUsers'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.chat_contacts:
+  path: '/api/chat/contacts'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::getContacts'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.chat_invites:
+  path: '/api/chat/invites'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::getInvites'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.chat_invite_respond:
+  path: '/api/chat/invites/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::respondInvite'
+  methods: [PUT, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.chat_sync:
+  path: '/api/chat/sync'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::sync'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+# ── AI Chatbot & Roadmaps ─────────────
+khushboo_api.chatbot_ask:
+  path: '/api/chatbot/ask'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatbotController::ask'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.roadmaps_generate:
+  path: '/api/roadmaps/generate'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\RoadmapController::generate'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.roadmaps_history:
+  path: '/api/roadmaps/history'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\RoadmapController::getHistory'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.roadmaps_delete:
+  path: '/api/roadmaps/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\RoadmapController::deleteRoadmap'
+  methods: [DELETE, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+# ── Announcements & Notifications ──────
+khushboo_api.announcements_get:
+  path: '/api/announcements'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AnnouncementController::getAll'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.announcements_post:
+  path: '/api/announcements'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AnnouncementController::createAnnouncement'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.announcements_delete:
+  path: '/api/announcements/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AnnouncementController::deleteAnnouncement'
+  methods: [DELETE, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.notifications_get:
+  path: '/api/notifications'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\NotificationController::getAll'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+# ── Admin & Batches ───────────────────
+khushboo_api.admin_users_get:
+  path: '/api/admin/users'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::getUsers'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_users_post:
+  path: '/api/admin/users'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::createUser'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_users_bulk:
+  path: '/api/admin/users/bulk'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::bulkCreateUsers'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_user_role:
+  path: '/api/admin/users/{id}/role'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::updateUserRole'
+  methods: [PUT, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_user_delete:
+  path: '/api/admin/users/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::deleteUser'
+  methods: [DELETE, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_reports:
+  path: '/api/admin/reports'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::getReports'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_students:
+  path: '/api/admin/students'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::getStudents'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_mentors:
+  path: '/api/admin/mentors'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::getMentors'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_batches_get:
+  path: '/api/admin/batches'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::getBatches'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_batches_post:
+  path: '/api/admin/batches'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::createBatch'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_batch_detail:
+  path: '/api/admin/batches/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::getBatchById'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_batch_put:
+  path: '/api/admin/batches/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::updateBatch'
+  methods: [PUT, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_batch_delete:
+  path: '/api/admin/batches/{id}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::deleteBatch'
+  methods: [DELETE, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_batch_students_add:
+  path: '/api/admin/batches/{id}/students'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::addStudents'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_batch_student_remove:
+  path: '/api/admin/batches/{id}/students/{studentId}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::removeStudent'
+  methods: [DELETE, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_batch_mentors_add:
+  path: '/api/admin/batches/{id}/mentors'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::addMentors'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.admin_batch_mentor_remove:
+  path: '/api/admin/batches/{id}/mentors/{mentorId}'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\AdminController::removeMentor'
+  methods: [DELETE, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+

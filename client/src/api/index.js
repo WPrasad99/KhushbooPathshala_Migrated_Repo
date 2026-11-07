@@ -146,12 +146,15 @@ export const forumAPI = {
     createPost: (data) => api.post('/forum/posts', data),
     createAnswer: (postId, content) => api.post(`/forum/posts/${postId}/answers`, { content }),
     upvoteAnswer: (answerId) => api.post(`/forum/answers/${answerId}/upvote`),
+    upvotePost: (postId) => api.post(`/forum/posts/${postId}/upvote`),
+    deletePost: (postId) => api.delete(`/forum/posts/${postId}`),
 };
 
 export const assignmentAPI = {
     createAssignment: (data) => api.post('/assignments', data),
     getAssignments: (batchId) => api.get('/assignments', { params: { batchId } }),
     getAssignmentDetails: (id) => api.get(`/assignments/${id}`),
+    deleteAssignment: (id) => api.delete(`/assignments/${id}`),
     submitAssignment: (id, data) => {
         const isFormData = data instanceof FormData;
         return api.post(`/assignments/${id}/submit`, data, {
@@ -164,6 +167,7 @@ export const assignmentAPI = {
 export const announcementAPI = {
     getAll: () => api.get('/announcements'),
     create: (data) => api.post('/announcements', data),
+    delete: (id) => api.delete(`/announcements/${id}`),
 };
 
 export const adminAPI = {

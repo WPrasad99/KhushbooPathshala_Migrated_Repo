@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         const response = await authAPI.login(email, password);
-        const { token: newToken, user: userData } = response.data ?? {};
+        const newToken = response?.data?.token || response?.token; const userData = response?.data?.user || response?.user;
         if (!newToken || !userData) throw new Error('Invalid login response');
         localStorage.setItem('token', newToken);
         setToken(newToken);
@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (email, password, name, role) => {
         const response = await authAPI.register({ email, password, name, role });
-        const { token: newToken, user: userData } = response.data ?? {};
+        const newToken = response?.data?.token || response?.token; const userData = response?.data?.user || response?.user;
         if (!newToken || !userData) throw new Error('Invalid register response');
         localStorage.setItem('token', newToken);
         setToken(newToken);
@@ -177,3 +177,4 @@ export const AuthProvider = ({ children }) => {
 };
 
 export default AuthContext;
+

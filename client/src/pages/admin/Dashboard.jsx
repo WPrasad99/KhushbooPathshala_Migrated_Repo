@@ -175,6 +175,18 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleDeleteAnnouncement = async (annId) => {
+        if (window.confirm('Are you sure you want to delete this announcement?')) {
+            try {
+                await announcementAPI.delete(annId);
+                fetchData();
+            } catch (error) {
+                console.error('Failed to delete announcement:', error);
+                alert('Failed to delete announcement.');
+            }
+        }
+    };
+
     const handleAddAnnouncement = async (e) => {
         e.preventDefault();
         try {
@@ -275,7 +287,7 @@ const AdminDashboard = () => {
         return `${Math.floor(hoursDiff / 24)}d ago`;
     };
 
-    const stats = dashboardData?.stats || {};
+    const stats = dashboardData?.stats || dashboardData || {};
     const engagementSeries = useMemo(() => {
         const source = dashboardData?.recentTrackings || [];
         const today = new Date();
@@ -578,7 +590,7 @@ const AdminDashboard = () => {
                                         </div>
                                         <span className="stat-label-enterprise">Total Students</span>
                                     </div>
-                                    <span className="stat-val-enterprise"><CountUp value={stats.totalStudents || 0} /></span>
+                                    <span className="stat-val-enterprise"><CountUp value={stats.totalStudents ?? dashboardData?.totalStudents ?? 0} /></span>
                                 </div>
                                 <div className="stat-card-enterprise">
                                     <div className="stat-header">
@@ -587,7 +599,7 @@ const AdminDashboard = () => {
                                         </div>
                                         <span className="stat-label-enterprise">Total Mentors</span>
                                     </div>
-                                    <span className="stat-val-enterprise"><CountUp value={stats.totalMentors || 0} /></span>
+                                    <span className="stat-val-enterprise"><CountUp value={stats.totalMentors ?? dashboardData?.totalMentors ?? 0} /></span>
                                 </div>
                                 <div className="stat-card-enterprise">
                                     <div className="stat-header">
@@ -596,7 +608,7 @@ const AdminDashboard = () => {
                                         </div>
                                         <span className="stat-label-enterprise">Total Resources</span>
                                     </div>
-                                    <span className="stat-val-enterprise"><CountUp value={stats.totalResources || 0} /></span>
+                                    <span className="stat-val-enterprise"><CountUp value={stats.totalResources ?? dashboardData?.totalResources ?? 0} /></span>
                                 </div>
                                 <div className="stat-card-enterprise">
                                     <div className="stat-header">
@@ -605,7 +617,7 @@ const AdminDashboard = () => {
                                         </div>
                                         <span className="stat-label-enterprise">Total Sessions</span>
                                     </div>
-                                    <span className="stat-val-enterprise"><CountUp value={stats.totalSessions || 0} /></span>
+                                    <span className="stat-val-enterprise"><CountUp value={stats.totalSessions ?? dashboardData?.totalSessions ?? 0} /></span>
                                 </div>
                             </div>
 
@@ -661,7 +673,7 @@ const AdminDashboard = () => {
                                                         <div>
                                                             <div style={{ fontWeight: '500', fontSize: '0.95rem', color: 'var(--admin-text-primary)' }}>{batch.name}</div>
                                                             <div style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)', marginTop: '4px' }}>
-                                                                {(batch._count?.students ?? batch.students?.length ?? 0)} Enrolled Students
+                                                                {(batch.students?.length ?? batch.studentsCount ?? batch._count?.students ?? 0)} Enrolled Students
                                                             </div>
                                                         </div>
                                                         <span className="status-badge-enterprise completed">Active</span>
@@ -700,7 +712,7 @@ const AdminDashboard = () => {
                                                 <div className="ann-card-header">
                                                     <span className={`ann-priority-dot ${ann.priority || 'normal'}`} />
                                                     <span className="ann-priority-label">{ann.priority === 'high' ? 'High Priority' : ann.priority === 'low' ? 'Low' : 'Normal'}</span>
-                                                    <span className="ann-date">{new Date(ann.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                    <span className="ann-date">{new Date(ann.createdAt || (ann.created_at ? ann.created_at * 1000 : Date.now())).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                                 </div>
                                                 <h4 className="ann-title">{ann.title}</h4>
                                                 <p className="ann-content">{ann.content}</p>
@@ -834,105 +846,162 @@ const AdminDashboard = () => {
                     )}
 
                     {activeTab === 'announcements' && (
-                        <div className="admin-page-container">
-                            <header className="admin-section-header">
+                        <div className="admin-page-container announcements-aesthetic-container">
+                            <header className="admin-section-header" style={{ marginBottom: '24px' }}>
                                 <div className="title-stack">
                                     <h1><FiBell /> Announcements</h1>
-                                    <p>Broadcast notices and updates to specific batches or the entire academy.</p>
+                                    <p>Broadcast minimal, targeted updates to student cohorts or academy-wide.</p>
+                                </div>
+                                <div className="header-actions">
+                                    <span className="badge badge-primary" style={{ padding: '8px 14px', borderRadius: '8px' }}>
+                                        {announcements.length} Published
+                                    </span>
                                 </div>
                             </header>
 
-                            <div className="admin-card-container">
-                                <header className="card-inner-header">
-                                    <h2><FiPlus /> Create New Announcement</h2>
-                                    <div className="divider" />
-                                </header>
+                            <div className="announcements-split-layout">
+                                {/* Left Side: Compose Card */}
+                                <div className="announcement-compose-box">
+                                    <div className="box-header">
+                                        <h3><FiPlus /> New Announcement</h3>
+                                        <span className="box-sub">Draft and publish immediately</span>
+                                    </div>
 
-                                <form onSubmit={handleAddAnnouncement} className="announcement-form">
-                                    <div className="form-row">
-                                        <div className="input-group full">
-                                            <label>Announcement Title</label>
+                                    <form onSubmit={handleAddAnnouncement} className="minimal-ann-form">
+                                        <div className="input-group">
+                                            <label>Title</label>
                                             <input
                                                 type="text"
                                                 className="admin-input"
                                                 value={newAnnouncement.title}
                                                 onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
                                                 required
-                                                placeholder="e.g., Upcoming Holiday Notice"
+                                                placeholder="e.g., Guest Lecture Tomorrow at 4 PM"
                                             />
                                         </div>
-                                    </div>
 
-                                    <div className="form-row">
-                                        <div className="input-group full">
-                                            <label>Message Content</label>
+                                        <div className="input-group">
+                                            <label>Message</label>
                                             <textarea
                                                 className="admin-textarea"
+                                                rows={4}
                                                 value={newAnnouncement.content}
                                                 onChange={(e) => setNewAnnouncement({ ...newAnnouncement, content: e.target.value })}
                                                 required
-                                                placeholder="Write your announcement details here..."
+                                                placeholder="Write a clear, concise announcement..."
                                             />
                                         </div>
-                                    </div>
 
-                                    <div className="form-row split">
                                         <div className="input-group">
-                                            <label>Priority Level</label>
-                                            <div className="select-wrapper">
-                                                <select
-                                                    className="admin-select"
-                                                    value={newAnnouncement.priority}
-                                                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, priority: e.target.value })}
-                                                >
-                                                    <option value="low">Low Priority</option>
-                                                    <option value="normal">Normal</option>
-                                                    <option value="high">High Priority</option>
-                                                </select>
-                                                <div className={`priority-indicator ${newAnnouncement.priority}`} />
+                                            <label>Priority</label>
+                                            <div className="priority-pill-selector">
+                                                {['low', 'normal', 'high'].map(p => (
+                                                    <button
+                                                        type="button"
+                                                        key={p}
+                                                        className={`priority-pill ${newAnnouncement.priority === p ? 'active ' + p : ''}`}
+                                                        onClick={() => setNewAnnouncement({ ...newAnnouncement, priority: p })}
+                                                    >
+                                                        <span className={`pill-dot ${p}`} />
+                                                        {p === 'high' ? 'High Priority' : p === 'low' ? 'Low' : 'Normal'}
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
+
+                                        <div className="input-group">
+                                            <label>Target Batches <span className="helper-text">(Default: Academy-wide)</span></label>
+                                            <div className="minimal-batch-chips">
+                                                {batches.length > 0 ? batches.map(batch => {
+                                                    const isSelected = (newAnnouncement.batchIds || []).includes(batch.id);
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            key={batch.id}
+                                                            className={`minimal-batch-tag ${isSelected ? 'selected' : ''}`}
+                                                            onClick={() => handleBatchSelection(batch.id)}
+                                                        >
+                                                            {isSelected && <FiCheckCircle size={13} style={{ marginRight: '4px' }} />}
+                                                            {batch.name}
+                                                        </button>
+                                                    );
+                                                }) : (
+                                                    <span style={{ fontSize: '13px', color: 'var(--admin-text-muted)' }}>No batches created</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="compose-footer">
+                                            <button
+                                                type="button"
+                                                className="btn-admin-secondary"
+                                                onClick={() => setNewAnnouncement({ title: '', content: '', priority: 'normal', batchIds: [] })}
+                                            >
+                                                Reset
+                                            </button>
+                                            <button type="submit" className="btn-admin-primary">
+                                                Broadcast Notice
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                {/* Right Side: Broadcast History Stream */}
+                                <div className="announcement-history-box">
+                                    <div className="box-header">
+                                        <h3>📢 Broadcast History</h3>
+                                        <span className="box-sub">Active academy notices</span>
                                     </div>
 
-                                    <div className="input-group full">
-                                        <label>Target Batches <span className="helper-text">(Optional — leave empty for all students)</span></label>
-                                        <div className="batch-chips-grid">
-                                            {batches.length > 0 ? batches.map(batch => {
-                                                const isSelected = (newAnnouncement.batchIds || []).includes(batch.id);
-                                                return (
-                                                    <div
-                                                        key={batch.id}
-                                                        className={`batch-chip-card ${isSelected ? 'selected' : ''}`}
-                                                        onClick={() => handleBatchSelection(batch.id)}
-                                                    >
-                                                        <div className="chip-checkbox">
-                                                            {isSelected && <FiCheckCircle />}
+                                    <div className="announcements-history-stream">
+                                        {announcements && announcements.length > 0 ? (
+                                            announcements.map((ann) => (
+                                                <div key={ann.id} className="history-ann-card">
+                                                    <div className="history-ann-top">
+                                                        <div className="history-priority-tag">
+                                                            <span className={`pill-dot ${(ann.priority || 'normal').toLowerCase()}`} />
+                                                            <span className="priority-text">{ann.priority || 'Normal'}</span>
                                                         </div>
-                                                        <div className="chip-info">
-                                                            <span className="batch-name">{batch.name}</span>
-                                                            <span className="batch-meta">{(batch._count?.students ?? batch.students?.length ?? 0)} Students</span>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <span className="history-date">
+                                                                {new Date(ann.createdAt || (ann.created_at ? ann.created_at * 1000 : Date.now())).toLocaleDateString('en-IN', {
+                                                                    day: 'numeric',
+                                                                    month: 'short',
+                                                                    year: 'numeric'
+                                                                })}
+                                                            </span>
+                                                            <button
+                                                                className="btn-trash-ann"
+                                                                onClick={() => handleDeleteAnnouncement(ann.id)}
+                                                                title="Delete Announcement"
+                                                            >
+                                                                <FiTrash2 size={14} />
+                                                            </button>
                                                         </div>
                                                     </div>
-                                                );
-                                            }) : (
-                                                <div className="empty-selection-state">No batches created yet.</div>
-                                            )}
-                                        </div>
+                                                    <h4 className="history-ann-title">{ann.title}</h4>
+                                                    <p className="history-ann-content">{ann.content}</p>
+                                                    {ann.author && (
+                                                        <div className="history-ann-author">
+                                                            <img
+                                                                src={ann.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(ann.author.name || 'Admin')}`}
+                                                                alt=""
+                                                                className="author-avatar"
+                                                            />
+                                                            <span>By {ann.author.name || 'Admin'}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="ann-empty-stream">
+                                                <FiBell size={32} style={{ opacity: 0.3, marginBottom: '8px' }} />
+                                                <p>No announcements published yet.</p>
+                                                <span>Use the form on the left to broadcast your first message.</span>
+                                            </div>
+                                        )}
                                     </div>
-
-                                    <footer className="form-actions">
-                                        <button
-                                            type="button"
-                                            className="btn-admin-secondary"
-                                            onClick={() => setNewAnnouncement({ title: '', content: '', priority: 'normal', batchIds: [] })}
-                                        >
-                                            Clear Form
-                                        </button>
-                                        <button type="submit" className="btn-admin-primary">
-                                            Publish Announcement
-                                        </button>
-                                    </footer>
-                                </form>
+                                </div>
                             </div>
                         </div>
                     )}

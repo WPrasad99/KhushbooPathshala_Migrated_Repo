@@ -1,0 +1,43 @@
+# Dependencies
+client/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Production Build Artifacts
+client/dist/
+client/dist-ssr/
+
+# Environment Variables & Local Configs
+client/.env.local
+client/.env.development.local
+client/.env.test.local
+client/.env.production.local
+.env
+.env.local
+
+# Operating System & Editor Files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+*.log
+logs/
+
+# Drupal Temporary / Generated Asset Caches
+drupal-backend/web/sites/default/files/php/
+drupal-backend/web/sites/default/files/styles/
+drupal-backend/web/sites/default/files/css/
+drupal-backend/web/sites/default/files/js/
+

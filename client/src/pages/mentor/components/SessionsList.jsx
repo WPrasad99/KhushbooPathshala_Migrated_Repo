@@ -1,12 +1,34 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useUploadSession, useUploadResource, useMentorUploads, useDeleteUpload, useMentorBatches } from '../../../hooks/mentor/useMentorQueries';
+import {
+    useUploadSession,
+    useUploadResource,
+    useMentorUploads,
+    useDeleteUpload,
+    useMentorBatches
+} from '../../../hooks/mentor/useMentorQueries';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX } from 'react-icons/fi';
+import {
+    FiBookOpen,
+    FiVideo,
+    FiFileText,
+    FiPlus,
+    FiTrash2,
+    FiSearch,
+    FiX,
+    FiExternalLink,
+    FiCalendar,
+    FiUploadCloud,
+    FiLayers,
+    FiAlertCircle,
+    FiRefreshCw,
+    FiDownload
+} from 'react-icons/fi';
 import { getApiErrorMessage } from '../../../api';
-import { FileUp, File, Video, Trash2, Filter, Plus, Calendar, CloudUpload, MoreVertical } from 'lucide-react';
 
-const UploadModal = ({ isSession, batches, onClose, onSuccess }) => {
+// --- UPLOAD MODAL ---
+const UploadModal = ({ batches, onClose, onSuccess }) => {
+    const [uploadType, setUploadType] = useState('SESSION'); // 'SESSION' or 'RESOURCE'
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [batchId, setBatchId] = useState('');
@@ -24,302 +46,834 @@ const UploadModal = ({ isSession, batches, onClose, onSuccess }) => {
         setLoading(true);
 
         try {
-            if (isSession) {
+            if (uploadType === 'SESSION') {
                 if (!videoUrl) {
-                    setError('Please provide a valid YouTube URL');
+                    setError('Please provide a valid YouTube video URL.');
                     setLoading(false);
                     return;
                 }
-                await uploadSession.mutateAsync({ title, description, batchId, videoUrl });
+                await uploadSession.mutateAsync({
+                    title,
+                    description,
+                    batchId: batchId || null,
+                    videoUrl
+                });
             } else {
                 if (!file) {
-                    setError('Please select a file to upload');
+                    setError('Please select a document file to upload.');
                     setLoading(false);
                     return;
                 }
                 const formData = new FormData();
                 formData.append('title', title);
                 formData.append('description', description);
-                formData.append('batchId', batchId);
-                formData.append('category', 'GENERAL');
+                if (batchId) formData.append('batchId', batchId);
+                formData.append('category', 'TECHNICAL_SKILLS');
                 formData.append('file', file);
                 await uploadResource.mutateAsync(formData);
             }
             onSuccess();
             onClose();
         } catch (err) {
-            setError(getApiErrorMessage(err, 'Failed to upload. Please try again.'));
+            setError(getApiErrorMessage(err, 'Failed to publish resource. Please try again.'));
             setLoading(false);
         }
     };
 
     return createPortal(
         <AnimatePresence>
-            <motion.div
-                className="modal-overlay"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={onClose}
-                style={{ zIndex: 1000 }}
-            >
+            <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
                 <motion.div
-                    className="glass-modal"
-                    initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ maxWidth: '500px', width: '95%', borderRadius: 'var(--radius-2xl)' }}
+                    className="modal-content"
+                    initial={{ opacity: 0, scale: 0.96, y: 16 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96, y: 16 }}
+                    transition={{ duration: 0.2 }}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                        maxWidth: '560px',
+                        width: '95%',
+                        padding: 0,
+                        overflow: 'hidden',
+                        borderRadius: '16px',
+                        border: '1.5px solid var(--admin-border-color)'
+                    }}
                 >
-                    <div className="modal-header" style={{ padding: 'var(--space-20) var(--space-24)' }}>
-                        <h2 style={{ fontSize: 'var(--fs-h3)', margin: 0 }}>{isSession ? 'Create Video Session' : 'Upload Resource'}</h2>
-                        <button type="button" className="m-btn m-btn--ghost" onClick={onClose} aria-label="Close" style={{ padding: '8px', minHeight: 'unset' }}>
-                            <FiX size={20} />
+                    {/* Header */}
+                    <div style={{
+                        padding: '18px 24px',
+                        borderBottom: '1px solid var(--admin-border-color)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: 'var(--admin-surface)'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '8px',
+                                background: 'rgba(79, 70, 229, 0.08)',
+                                color: 'var(--admin-primary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                <FiUploadCloud size={18} />
+                            </div>
+                            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
+                                Add Learning Resource
+                            </h2>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--admin-text-muted)',
+                                cursor: 'pointer',
+                                padding: '6px',
+                                borderRadius: '6px'
+                            }}
+                        >
+                            <FiX size={18} />
                         </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                        <div className="modal-body" style={{ padding: 'var(--space-24)' }}>
+                    <form onSubmit={handleSubmit}>
+                        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             {error && (
-                                <div className="m-badge m-badge--error" style={{ width: '100%', marginBottom: 'var(--space-16)', padding: 'var(--space-12)', borderRadius: 'var(--radius-md)', justifyContent: 'center' }}>
-                                    {error}
+                                <div style={{
+                                    padding: '10px 14px',
+                                    borderRadius: '8px',
+                                    background: 'rgba(239, 68, 68, 0.08)',
+                                    color: '#ef4444',
+                                    fontSize: '12.5px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}>
+                                    <FiAlertCircle size={15} /> {error}
                                 </div>
                             )}
 
-                            <div className="m-form-group" style={{ marginBottom: 'var(--space-16)' }}>
-                                <label style={{ display: 'block', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-medium)', marginBottom: 'var(--space-8)', color: 'var(--text-secondary)' }}>Assign to Batch *</label>
+                            {/* Resource Type Switcher */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--admin-text-secondary)', marginBottom: '6px' }}>
+                                    Resource Type
+                                </label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setUploadType('SESSION')}
+                                        style={{
+                                            padding: '9px 14px',
+                                            borderRadius: '8px',
+                                            border: uploadType === 'SESSION' ? '1.5px solid var(--admin-primary)' : '1px solid var(--admin-border-color)',
+                                            background: uploadType === 'SESSION' ? 'rgba(79, 70, 229, 0.08)' : 'var(--admin-bg)',
+                                            color: uploadType === 'SESSION' ? 'var(--admin-primary)' : 'var(--admin-text-secondary)',
+                                            fontWeight: 600,
+                                            fontSize: '13px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px'
+                                        }}
+                                    >
+                                        <FiVideo size={15} /> Video Lecture
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setUploadType('RESOURCE')}
+                                        style={{
+                                            padding: '9px 14px',
+                                            borderRadius: '8px',
+                                            border: uploadType === 'RESOURCE' ? '1.5px solid var(--admin-primary)' : '1px solid var(--admin-border-color)',
+                                            background: uploadType === 'RESOURCE' ? 'rgba(79, 70, 229, 0.08)' : 'var(--admin-bg)',
+                                            color: uploadType === 'RESOURCE' ? 'var(--admin-primary)' : 'var(--admin-text-secondary)',
+                                            fontWeight: 600,
+                                            fontSize: '13px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px'
+                                        }}
+                                    >
+                                        <FiFileText size={15} /> Study Material
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Batch Selection */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--admin-text-secondary)', marginBottom: '6px' }}>
+                                    Target Batch Cohort
+                                </label>
                                 <select
-                                    className="m-select"
                                     value={batchId}
                                     onChange={(e) => setBatchId(e.target.value)}
-                                    required
-                                    style={{ width: '100%' }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '9px 12px',
+                                        fontSize: '13px',
+                                        borderRadius: '8px',
+                                        border: '1.5px solid var(--admin-border-color)',
+                                        background: 'var(--admin-surface)',
+                                        color: 'var(--admin-text-primary)',
+                                        outline: 'none'
+                                    }}
                                 >
-                                    <option value="">Select a batch...</option>
-                                    {(batches || []).map((b) => (
-                                        <option key={b.id} value={b.id}>{b.name}</option>
+                                    <option value="">General (All Batches)</option>
+                                    {(batches || []).map(b => (
+                                        <option key={b.id} value={b.id}>{b.name} ({b.code || 'COHORT'})</option>
                                     ))}
                                 </select>
                             </div>
 
-                            <div className="m-form-group" style={{ marginBottom: 'var(--space-16)' }}>
-                                <label style={{ display: 'block', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-medium)', marginBottom: 'var(--space-8)', color: 'var(--text-secondary)' }}>Resource Title *</label>
+                            {/* Title */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--admin-text-secondary)', marginBottom: '6px' }}>
+                                    Title *
+                                </label>
                                 <input
                                     type="text"
-                                    className="m-search-input"
+                                    required
+                                    placeholder={uploadType === 'SESSION' ? 'e.g. Modern Full Stack Architecture' : 'e.g. React Cheatsheet & Guide'}
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    placeholder={isSession ? 'e.g. React Fundamentals' : 'e.g. Weekly Homework'}
-                                    required
-                                    style={{ width: '100%', paddingLeft: 'var(--space-16)' }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '9px 12px',
+                                        fontSize: '13px',
+                                        borderRadius: '8px',
+                                        border: '1.5px solid var(--admin-border-color)',
+                                        background: 'var(--admin-surface)',
+                                        color: 'var(--admin-text-primary)',
+                                        outline: 'none'
+                                    }}
                                 />
                             </div>
 
-                            <div className="m-form-group" style={{ marginBottom: 'var(--space-16)' }}>
-                                <label style={{ display: 'block', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-medium)', marginBottom: 'var(--space-8)', color: 'var(--text-secondary)' }}>Detailed Description</label>
+                            {/* Description */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--admin-text-secondary)', marginBottom: '6px' }}>
+                                    Brief Description
+                                </label>
                                 <textarea
-                                    className="m-search-input"
+                                    rows={3}
+                                    placeholder="Explain key concepts covered in this material..."
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="Briefly explain what this resource covers..."
-                                    rows={3}
-                                    style={{ width: '100%', padding: 'var(--space-12) var(--space-16)', minHeight: '100px', resize: 'none' }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '9px 12px',
+                                        fontSize: '13px',
+                                        borderRadius: '8px',
+                                        border: '1.5px solid var(--admin-border-color)',
+                                        background: 'var(--admin-surface)',
+                                        color: 'var(--admin-text-primary)',
+                                        outline: 'none',
+                                        resize: 'none'
+                                    }}
                                 />
                             </div>
 
-                            {isSession ? (
-                                <div className="m-form-group">
-                                    <label style={{ display: 'block', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-medium)', marginBottom: 'var(--space-8)', color: 'var(--text-secondary)' }}>YouTube Embed Link *</label>
+                            {/* Video URL or File Upload */}
+                            {uploadType === 'SESSION' ? (
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--admin-text-secondary)', marginBottom: '6px' }}>
+                                        YouTube Video URL *
+                                    </label>
                                     <input
                                         type="url"
-                                        className="m-search-input"
+                                        required
+                                        placeholder="https://www.youtube.com/watch?v=..."
                                         value={videoUrl}
                                         onChange={(e) => setVideoUrl(e.target.value)}
-                                        placeholder="https://www.youtube.com/watch?v=..."
-                                        required
-                                        style={{ width: '100%', paddingLeft: 'var(--space-16)' }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '9px 12px',
+                                            fontSize: '13px',
+                                            borderRadius: '8px',
+                                            border: '1.5px solid var(--admin-border-color)',
+                                            background: 'var(--admin-surface)',
+                                            color: 'var(--admin-text-primary)',
+                                            outline: 'none'
+                                        }}
                                     />
                                 </div>
                             ) : (
-                                <div className="m-form-group">
-                                    <label style={{ display: 'block', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-medium)', marginBottom: 'var(--space-8)', color: 'var(--text-secondary)' }}>Select Document *</label>
-                                    <div style={{ border: '2px dashed var(--color-border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-32)', textAlign: 'center', transition: 'all 0.2s' }} className="upload-dropzone">
-                                        <CloudUpload size={32} style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-12)' }} />
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--admin-text-secondary)', marginBottom: '6px' }}>
+                                        Document File (PDF, DOCX, ZIP) *
+                                    </label>
+                                    <div style={{
+                                        border: '1.5px dashed var(--admin-border-color)',
+                                        borderRadius: '10px',
+                                        padding: '24px 16px',
+                                        textAlign: 'center',
+                                        background: 'var(--admin-bg)',
+                                        cursor: 'pointer'
+                                    }}>
                                         <input
                                             type="file"
+                                            id="mentor-file-input"
                                             onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                            id="file-upload"
-                                            className="visually-hidden"
-                                            required={!isSession}
+                                            style={{ display: 'none' }}
+                                            required
                                         />
-                                        <label htmlFor="file-upload" style={{ cursor: 'pointer', display: 'block' }}>
-                                            <span style={{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)' }}>{file ? file.name : 'Click to upload'}</span>
-                                            <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-muted)', marginTop: 'var(--space-4)' }}>PDF, DOCX, ZIP up to 50MB</p>
+                                        <label htmlFor="mentor-file-input" style={{ cursor: 'pointer', display: 'block' }}>
+                                            <FiUploadCloud size={28} style={{ color: 'var(--admin-primary)', marginBottom: '6px' }} />
+                                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
+                                                {file ? file.name : 'Click to select document'}
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)', marginTop: '4px' }}>
+                                                Supported: PDF, DOCX, ZIP, PPTX (Up to 50MB)
+                                            </div>
                                         </label>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        <div className="modal-actions" style={{ padding: 'var(--space-20) var(--space-24)', borderTop: '1px solid var(--color-border)' }}>
-                            <button type="button" className="m-btn m-btn--ghost" onClick={onClose}>
-                                Save Draft
+                        {/* Footer */}
+                        <div style={{
+                            padding: '14px 24px',
+                            borderTop: '1px solid var(--admin-border-color)',
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: '10px',
+                            background: 'var(--admin-bg)'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--admin-border-color)',
+                                    background: 'var(--admin-surface)',
+                                    color: 'var(--admin-text-secondary)',
+                                    fontSize: '13px',
+                                    fontWeight: 500,
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
                             </button>
-                            <button type="submit" className="m-btn m-btn--primary" disabled={loading} style={{ marginLeft: 'auto' }}>
-                                {loading ? 'Uploading...' : 'Publish Resource'}
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                style={{
+                                    padding: '8px 20px',
+                                    borderRadius: '8px',
+                                    background: 'var(--admin-primary)',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    fontWeight: 600,
+                                    fontSize: '13px',
+                                    cursor: loading ? 'not-allowed' : 'pointer',
+                                    opacity: loading ? 0.7 : 1
+                                }}
+                            >
+                                {loading ? 'Publishing...' : 'Publish Content'}
                             </button>
                         </div>
                     </form>
                 </motion.div>
-            </motion.div>
+            </div>
         </AnimatePresence>,
         document.body
     );
 };
 
+// --- MAIN SESSIONS LIST COMPONENT ---
 const SessionsList = () => {
-    const [uploadType, setUploadType] = useState('SESSION');
+    const [activeFilter, setActiveFilter] = useState('ALL'); // 'ALL' | 'SESSION' | 'RESOURCE'
+    const [selectedBatchId, setSelectedBatchId] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
     const [showUploadModal, setShowUploadModal] = useState(false);
 
-    const { data: uploadsData, isLoading, isError } = useMentorUploads(uploadType);
+    const { data: uploadsData, isLoading, isError, refetch } = useMentorUploads();
     const { data: batchesData } = useMentorBatches();
     const deleteUpload = useDeleteUpload();
 
     const uploads = Array.isArray(uploadsData) ? uploadsData : [];
     const batches = Array.isArray(batchesData) ? batchesData : [];
 
-    const handleDelete = async (e, id) => {
-        e.stopPropagation();
-        if (!window.confirm('Are you sure you want to permanently delete this resource?')) return;
-        try {
-            await deleteUpload.mutateAsync(id);
-        } catch (err) {
-            console.error('Delete operation failed:', err);
+    // Filter uploads
+    const filteredUploads = uploads.filter(u => {
+        if (activeFilter !== 'ALL' && u.type !== activeFilter) return false;
+        if (selectedBatchId && u.batch_id !== selectedBatchId) return false;
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            return (
+                (u.title || '').toLowerCase().includes(term) ||
+                (u.description || '').toLowerCase().includes(term) ||
+                (u.batchName || '').toLowerCase().includes(term)
+            );
+        }
+        return true;
+    });
+
+    const videoCount = uploads.filter(u => u.type === 'SESSION').length;
+    const resourceCount = uploads.filter(u => u.type === 'RESOURCE').length;
+
+    const handleDelete = async (id, title) => {
+        if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
+            try {
+                await deleteUpload.mutateAsync(id);
+            } catch (err) {
+                alert('Failed to delete resource. Please try again.');
+            }
         }
     };
 
-    if (isError) {
-        return (
-            <div className="m-section">
-                <div className="m-empty-state">
-                    <CloudUpload size={48} style={{ opacity: 0.2 }} />
-                    <h3 className="m-empty-state__title">Library Sync Error</h3>
-                    <p className="m-empty-state__desc">We were unable to load your learning library. Please check your permissions.</p>
-                    <button className="m-btn m-btn--primary" onClick={() => window.location.reload()}>Retry Library Sync</button>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="m-section">
-            <header className="mentor-page-header">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Header */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '16px'
+            }}>
                 <div>
-                    <h2 className="mentor-page-title">Learning Library</h2>
-                    <p className="mentor-page-subtitle">Curate and share educational content, video recordings, and study materials.</p>
+                    <h1 style={{
+                        margin: 0,
+                        fontSize: '22px',
+                        fontWeight: 600,
+                        letterSpacing: '-0.02em',
+                        color: 'var(--admin-text-primary)'
+                    }}>
+                        Learning Resources
+                    </h1>
+                    <p style={{
+                        margin: '4px 0 0 0',
+                        fontSize: '13.5px',
+                        color: 'var(--admin-text-secondary)'
+                    }}>
+                        Curate and share video lectures, course guides, and reference documents for your cohorts.
+                    </p>
                 </div>
-                <div className="mentor-header-actions">
-                    <button className="m-btn m-btn--primary" onClick={() => setShowUploadModal(true)}>
-                        <Plus size={18} />
-                        Create Content
-                    </button>
-                </div>
-            </header>
 
-            <div className="m-card" style={{ padding: 'var(--space-16)', marginBottom: 'var(--space-8)' }}>
-                <div style={{ display: 'flex', gap: 'var(--space-12)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <button
-                        className={`m-btn ${uploadType === 'SESSION' ? 'm-btn--primary' : 'm-btn--ghost'}`}
-                        onClick={() => setUploadType('SESSION')}
-                        style={{ minHeight: '34px', background: uploadType === 'SESSION' ? 'var(--color-primary)' : 'transparent' }}
+                        onClick={() => setShowUploadModal(true)}
+                        style={{
+                            padding: '9px 18px',
+                            borderRadius: '8px',
+                            background: 'var(--admin-primary)',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontWeight: 600,
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)'
+                        }}
                     >
-                        <Video size={16} />
-                        Video Sessions
-                    </button>
-                    <button
-                        className={`m-btn ${uploadType === 'RESOURCE' ? 'm-btn--primary' : 'm-btn--ghost'}`}
-                        onClick={() => setUploadType('RESOURCE')}
-                        style={{ minHeight: '34px', background: uploadType === 'RESOURCE' ? 'var(--color-primary)' : 'transparent' }}
-                    >
-                        <File size={16} />
-                        Study Materials
+                        <FiPlus size={16} /> Add Resource
                     </button>
                 </div>
             </div>
 
-            <div className="m-grid-3">
-                {isLoading ? (
-                    Array(6).fill(0).map((_, i) => (
-                        <div key={i} className="m-skeleton m-skeleton--h200" />
-                    ))
-                ) : uploads.length > 0 ? (
-                    uploads.map((resource, idx) => (
-                        <motion.div
-                            key={resource.id}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: idx * 0.04 }}
-                            className="m-card m-card--interactive"
-                            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-16)' }}
+            {/* Filter and Search Bar */}
+            <div style={{
+                background: 'var(--admin-surface)',
+                borderRadius: '12px',
+                border: '1.5px solid var(--admin-border-color)',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+            }}>
+                {/* Segmented Type Switcher */}
+                <div style={{
+                    display: 'flex',
+                    background: 'var(--admin-bg)',
+                    padding: '3px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--admin-border-color)'
+                }}>
+                    <button
+                        onClick={() => setActiveFilter('ALL')}
+                        style={{
+                            padding: '6px 14px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: activeFilter === 'ALL' ? 'var(--admin-surface)' : 'transparent',
+                            color: activeFilter === 'ALL' ? 'var(--admin-primary)' : 'var(--admin-text-secondary)',
+                            fontWeight: activeFilter === 'ALL' ? 600 : 500,
+                            fontSize: '12.5px',
+                            cursor: 'pointer',
+                            boxShadow: activeFilter === 'ALL' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                            transition: 'all 0.15s ease'
+                        }}
+                    >
+                        All ({uploads.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveFilter('SESSION')}
+                        style={{
+                            padding: '6px 14px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: activeFilter === 'SESSION' ? 'var(--admin-surface)' : 'transparent',
+                            color: activeFilter === 'SESSION' ? 'var(--admin-primary)' : 'var(--admin-text-secondary)',
+                            fontWeight: activeFilter === 'SESSION' ? 600 : 500,
+                            fontSize: '12.5px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: activeFilter === 'SESSION' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                            transition: 'all 0.15s ease'
+                        }}
+                    >
+                        <FiVideo size={13} /> Videos ({videoCount})
+                    </button>
+                    <button
+                        onClick={() => setActiveFilter('RESOURCE')}
+                        style={{
+                            padding: '6px 14px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: activeFilter === 'RESOURCE' ? 'var(--admin-surface)' : 'transparent',
+                            color: activeFilter === 'RESOURCE' ? 'var(--admin-primary)' : 'var(--admin-text-secondary)',
+                            fontWeight: activeFilter === 'RESOURCE' ? 600 : 500,
+                            fontSize: '12.5px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: activeFilter === 'RESOURCE' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                            transition: 'all 0.15s ease'
+                        }}
+                    >
+                        <FiFileText size={13} /> Documents ({resourceCount})
+                    </button>
+                </div>
+
+                {/* Batch dropdown & Search input */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, justifyContent: 'flex-end', minWidth: '300px' }}>
+                    <div style={{ width: '180px' }}>
+                        <select
+                            value={selectedBatchId}
+                            onChange={(e) => setSelectedBatchId(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '7px 10px',
+                                fontSize: '12.5px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--admin-border-color)',
+                                background: 'var(--admin-bg)',
+                                color: 'var(--admin-text-primary)',
+                                outline: 'none'
+                            }}
                         >
-                            <div className="resource-card__head" style={{ marginBottom: 0 }}>
-                                <div className={`resource-card__icon-wrap ${resource.type !== 'SESSION' ? 'resource-card__icon-wrap--doc' : ''}`} style={{ width: '40px', height: '40px' }}>
-                                    {resource.type === 'SESSION' ? <Video size={18} /> : <File size={18} />}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <span className="resource-card__title" style={{ fontSize: 'var(--fs-body-lg)', fontWeight: 'var(--fw-semibold)' }}>{resource.title}</span>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                                        <div className="m-badge m-badge--info" style={{ fontSize: '10px', padding: '1px 6px' }}>{resource.batch?.name || 'Batch Default'}</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <p className="resource-card__desc" style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-body)', margin: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                {resource.description || 'No detailed description provided for this learning material.'}
-                            </p>
-
-                            <div className="resource-card__footer" style={{ marginTop: 'auto', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-12)' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '11px' }}>
-                                    <Calendar size={12} />
-                                    <span>Added {new Date(resource.createdAt).toLocaleDateString()}</span>
-                                </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button
-                                        className="m-btn m-btn--ghost"
-                                        onClick={(e) => handleDelete(e, resource.id)}
-                                        style={{ color: 'var(--color-error)', minHeight: 'unset', padding: '6px' }}
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                    <button className="m-btn m-btn--ghost" style={{ minHeight: 'unset', padding: '6px' }}>
-                                        <MoreVertical size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))
-                ) : (
-                    <div className="m-empty-state">
-                        <div style={{ background: 'var(--color-surface-muted)', width: '72px', height: '72px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--space-16)' }}>
-                            <FileUp size={36} style={{ color: 'var(--text-muted)' }} />
-                        </div>
-                        <h3 className="m-empty-state__title">Empty Library</h3>
-                        <p className="m-empty-state__desc">
-                            You haven't uploaded any {uploadType === 'SESSION' ? 'video sessions' : 'study materials'} to the library yet.
-                        </p>
-                        <button className="m-btn m-btn--primary" onClick={() => setShowUploadModal(true)}>
-                            Start Your First Upload
-                        </button>
+                            <option value="">All Cohorts</option>
+                            {batches.map(b => (
+                                <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                        </select>
                     </div>
-                )}
+
+                    <div style={{ position: 'relative', width: '220px' }}>
+                        <FiSearch
+                            size={14}
+                            style={{
+                                position: 'absolute',
+                                left: '10px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                color: 'var(--admin-text-muted)'
+                            }}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Filter resources..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '7px 10px 7px 30px',
+                                fontSize: '12.5px',
+                                borderRadius: '8px',
+                                border: '1px solid var(--admin-border-color)',
+                                background: 'var(--admin-bg)',
+                                color: 'var(--admin-text-primary)',
+                                outline: 'none'
+                            }}
+                        />
+                    </div>
+                </div>
             </div>
 
+            {/* Error banner */}
+            {isError && (
+                <div style={{
+                    padding: '20px',
+                    borderRadius: '12px',
+                    background: 'rgba(239, 68, 68, 0.06)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#ef4444' }}>
+                        <FiAlertCircle size={20} />
+                        <span style={{ fontSize: '13.5px', fontWeight: 500 }}>Failed to sync learning resources from server.</span>
+                    </div>
+                    <button
+                        onClick={() => refetch()}
+                        style={{
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #ef4444',
+                            background: 'transparent',
+                            color: '#ef4444',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Retry
+                    </button>
+                </div>
+            )}
+
+            {/* Loading */}
+            {isLoading && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
+                    {[1, 2, 3].map(i => (
+                        <div
+                            key={i}
+                            style={{
+                                height: '200px',
+                                borderRadius: '12px',
+                                background: 'var(--admin-surface)',
+                                border: '1.5px solid var(--admin-border-color)',
+                                opacity: 0.6,
+                                animation: 'pulse 1.5s infinite'
+                            }}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Empty state */}
+            {!isLoading && !isError && filteredUploads.length === 0 && (
+                <div style={{
+                    padding: '56px 24px',
+                    borderRadius: '14px',
+                    border: '1.5px dashed var(--admin-border-color)',
+                    background: 'var(--admin-surface)',
+                    textAlign: 'center'
+                }}>
+                    <div style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '14px',
+                        background: 'rgba(79, 70, 229, 0.08)',
+                        color: 'var(--admin-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 16px auto'
+                    }}>
+                        <FiBookOpen size={26} />
+                    </div>
+                    <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
+                        {searchTerm ? 'No Resources Found' : 'No Learning Resources Yet'}
+                    </h3>
+                    <p style={{ margin: '0 auto 16px auto', maxWidth: '380px', fontSize: '13px', color: 'var(--admin-text-secondary)' }}>
+                        {searchTerm
+                            ? `No materials match "${searchTerm}". Clear your search to view all.`
+                            : 'You haven\'t published any video lectures or study materials yet. Click below to add your first resource.'}
+                    </p>
+                    <button
+                        onClick={() => setShowUploadModal(true)}
+                        style={{
+                            padding: '8px 18px',
+                            borderRadius: '8px',
+                            background: 'var(--admin-primary)',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                        }}
+                    >
+                        + Add First Resource
+                    </button>
+                </div>
+            )}
+
+            {/* Resources Grid */}
+            {!isLoading && !isError && filteredUploads.length > 0 && (
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+                    gap: '20px'
+                }}>
+                    {filteredUploads.map(item => {
+                        const isVideo = item.type === 'SESSION';
+                        const displayBatch = item.batchName || (item.batch && item.batch.name) || 'All Cohorts';
+                        const linkUrl = isVideo ? item.video_url : item.video_url;
+
+                        return (
+                            <motion.div
+                                key={item.id}
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                whileHover={{ y: -3 }}
+                                transition={{ duration: 0.18 }}
+                                style={{
+                                    background: 'var(--admin-surface)',
+                                    borderRadius: '12px',
+                                    border: '1.5px solid var(--admin-border-color)',
+                                    padding: '20px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '14px',
+                                    boxShadow: 'var(--shadow-card)',
+                                    position: 'relative'
+                                }}
+                            >
+                                {/* Top Header */}
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                                        <div style={{
+                                            width: '38px',
+                                            height: '38px',
+                                            borderRadius: '8px',
+                                            background: isVideo ? 'rgba(79, 70, 229, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+                                            color: isVideo ? 'var(--admin-primary)' : 'var(--admin-success, #10B981)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0
+                                        }}>
+                                            {isVideo ? <FiVideo size={18} /> : <FiFileText size={18} />}
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <h3 style={{
+                                                margin: 0,
+                                                fontSize: '15px',
+                                                fontWeight: 600,
+                                                color: 'var(--admin-text-primary)',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis'
+                                            }}>
+                                                {item.title}
+                                            </h3>
+                                            <span style={{
+                                                fontSize: '11px',
+                                                fontWeight: 600,
+                                                color: 'var(--admin-text-muted)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
+                                                marginTop: '2px'
+                                            }}>
+                                                <FiLayers size={11} /> {displayBatch}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Delete Button */}
+                                    <button
+                                        onClick={() => handleDelete(item.id, item.title)}
+                                        title="Delete Resource"
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: 'var(--admin-text-muted)',
+                                            cursor: 'pointer',
+                                            padding: '6px',
+                                            borderRadius: '6px',
+                                            transition: 'color 0.15s ease'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                                        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--admin-text-muted)'}
+                                    >
+                                        <FiTrash2 size={15} />
+                                    </button>
+                                </div>
+
+                                {/* Description */}
+                                <p style={{
+                                    margin: 0,
+                                    fontSize: '13px',
+                                    color: 'var(--admin-text-secondary)',
+                                    lineHeight: 1.5,
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden'
+                                }}>
+                                    {item.description || 'No additional instructions or notes provided for this learning resource.'}
+                                </p>
+
+                                {/* Bottom Metadata & Link */}
+                                <div style={{
+                                    marginTop: 'auto',
+                                    paddingTop: '12px',
+                                    borderTop: '1px solid var(--admin-border-color)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    fontSize: '12px'
+                                }}>
+                                    <span style={{ color: 'var(--admin-text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <FiCalendar size={12} />
+                                        {new Date(item.createdAt || (item.created_at ? item.created_at * 1000 : Date.now())).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </span>
+
+                                    {linkUrl ? (
+                                        <a
+                                            href={linkUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                color: 'var(--admin-primary)',
+                                                fontWeight: 600,
+                                                textDecoration: 'none',
+                                                padding: '4px 10px',
+                                                borderRadius: '6px',
+                                                background: 'rgba(79, 70, 229, 0.06)'
+                                            }}
+                                        >
+                                            {isVideo ? 'Watch Video' : 'Open Document'} <FiExternalLink size={12} />
+                                        </a>
+                                    ) : (
+                                        <span style={{ color: 'var(--admin-text-muted)' }}>Internal Material</span>
+                                    )}
+                                </div>
+                            </motion.div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Upload Modal */}
             {showUploadModal && (
                 <UploadModal
-                    isSession={uploadType === 'SESSION'}
                     batches={batches}
                     onClose={() => setShowUploadModal(false)}
-                    onSuccess={() => { }}
+                    onSuccess={() => refetch()}
                 />
             )}
         </div>

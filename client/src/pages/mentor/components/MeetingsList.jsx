@@ -7,7 +7,7 @@ const MeetingsList = () => {
     const [filter, setFilter] = useState('upcoming');
     const { data: meetingsData, isLoading, isError } = useMentorMeetings({ limit: 50, filter });
 
-    const meetings = meetingsData?.items ?? [];
+    const meetings = Array.isArray(meetingsData) ? meetingsData : (meetingsData?.items ?? []);
 
     if (isError) {
         return (

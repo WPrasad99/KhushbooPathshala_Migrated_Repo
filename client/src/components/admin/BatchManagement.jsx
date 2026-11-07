@@ -8,8 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 // ── View Batch Modal ─────────────────────────────────────────────────────────
 const ViewBatchModal = ({ batch, onClose }) => {
     if (!batch) return null;
-    const students = batch.students?.map(bs => bs.student) || [];
-    const mentors = batch.mentors?.map(bm => bm.mentor || bm.user) || [];
+    const students = (batch.students || []).map(bs => bs.student || bs).filter(Boolean);
+    const mentors = (batch.mentors || []).map(bm => bm.mentor || bm.user || bm).filter(Boolean);
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -187,16 +187,19 @@ const BatchManagement = ({ onRefresh }) => {
 
                                 {/* Student avatars */}
                                 <div className="batch-avatars-row">
-                                    {batch.students?.slice(0, 5).map(bs => (
-                                        <div className="batch-avatar-wrapper" key={bs.student?.id || bs.id}>
-                                            <img
-                                                src={bs.student?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(bs.student?.name || 'S')}`}
-                                                alt={bs.student?.name}
-                                                title={bs.student?.name}
-                                                className="batch-avatar-img"
-                                            />
-                                        </div>
-                                    ))}
+                                    {batch.students?.slice(0, 5).map(bs => {
+                                        const s = bs.student || bs;
+                                        return (
+                                            <div className="batch-avatar-wrapper" key={s?.id || bs.id}>
+                                                <img
+                                                    src={s?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(s?.name || 'S')}`}
+                                                    alt={s?.name}
+                                                    title={s?.name}
+                                                    className="batch-avatar-img"
+                                                />
+                                            </div>
+                                        );
+                                    })}
                                     {(batch.students?.length || 0) > 5 && (
                                         <div className="batch-avatar-more">
                                             +{batch.students.length - 5}

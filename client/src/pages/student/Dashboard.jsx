@@ -1,69 +1,45 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
+    FiCheckCircle,
+    FiBookOpen,
+    FiTrendingUp,
+    FiCalendar,
+    FiFileText,
+    FiVideo,
+    FiClock,
+    FiExternalLink,
+    FiMessageCircle,
+    FiBell,
     FiActivity,
     FiArrowRight,
-    FiAward,
-    FiBookOpen,
-    FiCalendar,
-    FiCheckCircle,
-    FiClock,
-    FiBell,
-    FiFileText,
-    FiTrendingUp
+    FiAlertCircle,
+    FiRefreshCw
 } from 'react-icons/fi';
 import { userAPI } from '../../api';
 import { useAuth } from '../../context/AuthContext';
-
-import ActivityHeatmap from './ActivityHeatmap';
 import StudentAssignmentSection from '../../components/StudentAssignmentSection';
 import StudentResourcesSection from '../../components/StudentResourcesSection';
+import '../../pages/admin/AdminDashboard.css';
 import './Dashboard.css';
 
-const CARD_VARIANTS = {
-    initial: { opacity: 0, y: 16 },
-    animate: (index) => ({
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.35, delay: index * 0.06 }
-    })
-};
-
-const DashboardSkeleton = () => (
-    <div className="student-dashboard-shell">
-        <div className="student-dashboard-header skeleton" style={{ height: 110 }} />
-
-        <div className="student-stats-grid">
-            {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="student-stat-card skeleton" style={{ height: 156 }} />
-            ))}
-        </div>
-
-        <div className="student-overview-grid">
-            <div className="student-panel skeleton" style={{ minHeight: 280 }} />
-            <div className="student-panel skeleton" style={{ minHeight: 280 }} />
-        </div>
-
-        <div className="student-panel skeleton" style={{ minHeight: 230 }} />
-    </div>
-);
-
-// Simple CountUp Component for Animated Metrics
-const CountUp = ({ value, duration = 1500 }) => {
+// Animated CountUp for metric cards
+const CountUp = ({ value, duration = 1200 }) => {
     const [count, setCount] = useState(0);
 
     useEffect(() => {
         let startTimestamp = null;
+        const targetVal = Number(value) || 0;
         const step = (timestamp) => {
             if (!startTimestamp) startTimestamp = timestamp;
             const progress = Math.min((timestamp - startTimestamp) / duration, 1);
             const easeProgress = 1 - Math.pow(1 - progress, 4);
-            setCount(Math.floor(easeProgress * value));
+            setCount(Math.floor(easeProgress * targetVal));
             if (progress < 1) {
                 window.requestAnimationFrame(step);
             } else {
-                setCount(value);
+                setCount(targetVal);
             }
         };
         window.requestAnimationFrame(step);
@@ -74,271 +50,596 @@ const CountUp = ({ value, duration = 1500 }) => {
 
 const StudentDashboard = () => {
     const { user } = useAuth();
-    const location = useLocation();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [dashboardData, setDashboardData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [loginDates, setLoginDates] = useState([]);
+    const [error, setError] = useState(null);
 
-    // Safely destructure dashboardData with defaults
-    const {
-        stats = {},
-        upcomingSessions = [],
-        announcements = []
-    } = dashboardData || {};
-
-    const isAssignmentsView = location.pathname.includes('/assignments') || location.pathname.includes('/quizzes');
+    const isAssignmentsView = location.pathname.includes('/assignments');
     const isResourcesView = location.pathname.includes('/resources');
     const isOverview = !isAssignmentsView && !isResourcesView;
 
-    useEffect(() => {
-        const fetchDashboard = async () => {
-            try {
-                setLoading(true);
-                const response = await userAPI.getStudentDashboard();
-                setDashboardData(response.data);
-                setLoginDates(response.data.loginDates || []);
-            } catch (error) {
-                console.error('Failed to fetch dashboard data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const fetchDashboard = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await userAPI.getStudentDashboard();
+            setDashboardData(response.data);
+        } catch (err) {
+            console.error('Failed to fetch student dashboard:', err);
+            setError('Unable to load dashboard data.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchDashboard();
     }, []);
 
-    const activeDaysIn30 = useMemo(() => {
-        const threshold = Date.now() - 30 * 24 * 60 * 60 * 1000;
-        return loginDates.filter((day) => new Date(day).getTime() >= threshold).length;
-    }, [loginDates]);
+    const {
+        stats = {},
+        upcomingSessions = [],
+        announcements = [],
+        batches = [],
+        recentActivities = [],
+        loginDates = []
+    } = dashboardData || {};
 
-    const badgesEarned = useMemo(() => {
-        if (typeof stats?.badgesCount === 'number') return stats.badgesCount;
-        return Math.max(0, Math.floor((stats?.completedCourses || 0) * 1.5));
-    }, [stats?.badgesCount, stats?.completedCourses]);
+    const activeBatch = batches[0] || null;
+    const activeMentor = activeBatch?.mentor || null;
 
-    const metricCards = useMemo(
-        () => [
-            {
-                key: 'attendance',
-                label: 'Attendance %',
-                value: `${stats?.attendancePercentage || 0}%`,
-                trend: `${(stats?.attendancePercentage || 0) >= 80 ? '+' : ''}${Math.max(1, Math.round((stats?.attendancePercentage || 0) / 20))}% this week`,
-                icon: FiCheckCircle,
-                tone: 'success'
-            },
-            {
-                key: 'courses',
-                label: 'Completed Courses',
-                value: stats?.completedCourses || 0,
-                trend: `+${Math.max(1, Math.min(9, stats?.completedCourses || 1))}% this month`,
-                icon: FiBookOpen,
-                tone: 'primary'
-            },
-            {
-                key: 'active-days',
-                label: 'Active Days (30d)',
-                value: activeDaysIn30,
-                trend: `${activeDaysIn30 >= 12 ? '+5 day consistency' : 'Build your streak'}`,
-                icon: FiActivity,
-                tone: 'accent'
-            },
-            {
-                key: 'badges',
-                label: 'Badges Earned',
-                value: badgesEarned,
-                trend: badgesEarned > 0 ? `+${Math.min(3, badgesEarned)} this month` : 'Unlock your first badge',
-                icon: FiAward,
-                tone: 'warning'
-            }
-        ],
-        [activeDaysIn30, badgesEarned, stats?.attendancePercentage, stats?.completedCourses]
-    );
-
-    if (loading && isOverview) {
-        return <DashboardSkeleton />;
-    }
+    const currentDate = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    const currentTime = new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 
     if (isAssignmentsView) {
         return (
-            <div className="student-dashboard-shell">
-                <div className="student-subpage-content">
-                    <StudentAssignmentSection />
-                </div>
+            <div style={{ maxWidth: '1240px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <StudentAssignmentSection />
             </div>
         );
     }
 
     if (isResourcesView) {
         return (
-            <div className="student-dashboard-shell">
-                <section className="student-subpage-header card-hero">
-                    <div>
-                        <h1>Learning Resources</h1>
-                        <p>Curated notes, materials, and downloadable assets for your batch.</p>
-                    </div>
-                </section>
-                <div className="student-subpage-content">
-                    <StudentResourcesSection />
-                </div>
+            <div style={{ maxWidth: '1240px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <StudentResourcesSection />
             </div>
         );
     }
 
     return (
-        <div className="dashboard-content">
-            {isOverview && (
-                <section className="student-hero-section">
-                    <div className="hero-text">
-                        <h1>Hello, {user?.name?.split(' ')[0]} 👋</h1>
-                        <p>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} | {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
-                    </div>
-                    <div className="hero-actions">
-                        <button type="button" className="btn-student-outline" onClick={() => navigate('/student/courses')}>
-                            <FiBookOpen /> Explore Courses
-                        </button>
-                        <button type="button" className="btn-student-primary" onClick={() => navigate('/student/assignments')}>
-                            <FiFileText /> My Assignments
-                        </button>
-                    </div>
-                </section>
-            )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+            {/* 1. Header Section Matching Admin/Mentor Layout */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '16px'
+            }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <h1 style={{
+                        fontSize: '24px',
+                        fontWeight: 600,
+                        color: 'var(--admin-text-primary, #111827)',
+                        margin: 0,
+                        letterSpacing: '-0.02em'
+                    }}>
+                        👋 Hello, {user?.name?.split(' ')[0] || 'Student'}!
+                    </h1>
+                    <p style={{
+                        fontSize: '13.5px',
+                        color: 'var(--admin-text-secondary, #6B7280)',
+                        margin: 0
+                    }}>
+                        {currentDate} · {currentTime}
+                    </p>
+                </div>
 
-            {/* Quick Metrics Grid */}
-            <section className="stats-grid">
-                {metricCards.map((card, index) => {
-                    const Icon = card.icon;
-                    const toneMap = { success: 'teal', primary: 'blue', accent: 'purple', warning: 'orange' };
-                    const themeTone = toneMap[card.tone] || 'blue';
-                    return (
-                        <motion.article
-                            key={card.key}
-                            className={`stat-card stat-${themeTone}`}
-                            custom={index}
-                            variants={CARD_VARIANTS}
-                            initial="initial"
-                            animate="animate"
-                        >
-                            <div className="stat-header">
-                                <span className="stat-label">{card.label}</span>
-                                <div className="icon-circle">
-                                    <Icon />
-                                </div>
-                            </div>
-                            <div className="stat-value">
-                                {typeof card.value === 'number' ? <CountUp value={card.value} /> : card.value}
-                            </div>
-                        </motion.article>
-                    );
-                })}
-            </section>
-
-            {/* Main Content Grid: Sessions & Announcements */}
-            <div className="dashboard-sections">
-                {/* Left: Upcoming Sessions (70%) */}
-                <section className="dashboard-panel">
-                    <header className="panel-header">
-                        <h2><FiCalendar /> Upcoming Sessions</h2>
-                        <span className="count-badge">{upcomingSessions.length}</span>
-                    </header>
-
-                    <div className="sessions-list">
-                        {upcomingSessions.length === 0 ? (
-                            <div className="dashboard-empty-state">
-                                <FiCalendar className="empty-icon" />
-                                <span className="empty-text">No sessions scheduled this week.</span>
-                            </div>
-                        ) : (
-                            upcomingSessions.map((session, i) => (
-                                <motion.div
-                                    key={session.id || i}
-                                    className="session-card"
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: i * 0.05 }}
-                                >
-                                    <div className="session-date-box">
-                                        <span className="date-day">{new Date(session.scheduledAt).getDate()}</span>
-                                        <span className="date-month">{new Date(session.scheduledAt).toLocaleString('default', { month: 'short' })}</span>
-                                    </div>
-                                    <div className="session-info">
-                                        <div className="session-title">{session.title}</div>
-                                        <div className="session-meta">
-                                            <span><FiClock /> {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                            <span className="status-badge upcoming">{session.type === 'MEETING' ? 'Mentorship' : 'Batch Session'}</span>
-                                        </div>
-                                    </div>
-                                    <button className="btn-student-outline">Join</button>
-                                </motion.div>
-                            ))
-                        )}
-                    </div>
-                </section>
-
-                {/* Right: Announcements (30%) */}
-                <section className="dashboard-panel">
-                    <header className="panel-header">
-                        <div>
-                            <h2><FiBell /> Announcements</h2>
-                            <p>Latest from your mentors.</p>
-                        </div>
-                        <span className="count-badge">{announcements.length}</span>
-                    </header>
-
-                    <div className="announcements-list">
-                        {announcements.length === 0 ? (
-                            <div className="dashboard-empty-state">
-                                <FiBell className="empty-icon" />
-                                <span className="empty-text">No announcements yet.</span>
-                            </div>
-                        ) : (
-                            announcements.slice(0, 4).map((announcement, i) => (
-                                <motion.div
-                                    key={announcement.id || i}
-                                    className="session-card"
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: i * 0.05 }}
-                                >
-                                    <div className="icon-circle" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--student-primary)' }}>
-                                        <FiBell />
-                                    </div>
-                                    <div className="session-info">
-                                        <div className="session-title">{announcement.title}</div>
-                                        <div className="session-meta">
-                                            <span className="status-badge upcoming">New</span>
-                                            <span>{new Date(announcement.createdAt).toLocaleDateString()}</span>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))
-                        )}
-                    </div>
-                </section>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {activeBatch && (
+                        <span style={{
+                            padding: '6px 14px',
+                            borderRadius: '8px',
+                            background: 'rgba(79, 70, 229, 0.08)',
+                            color: 'var(--admin-primary)',
+                            fontWeight: 600,
+                            fontSize: '13px',
+                            border: '1px solid rgba(79, 70, 229, 0.2)'
+                        }}>
+                            Cohort: {activeBatch.name}
+                        </span>
+                    )}
+                    <button
+                        onClick={() => navigate('/student/assignments')}
+                        style={{
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            background: 'var(--admin-primary)',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontWeight: 600,
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)'
+                        }}
+                    >
+                        <FiFileText size={15} /> My Tasks
+                    </button>
+                </div>
             </div>
 
-            {/* Bottom: Activity Heatmap */}
-            <motion.section
-                className="dashboard-panel heatmap-panel"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-            >
-                <header className="panel-header">
-                    <div>
-                        <h2><FiTrendingUp /> Learning Consistency</h2>
-                        <p>Your activity intensity over the past year.</p>
+            {/* Error Notification */}
+            {error && (
+                <div style={{
+                    padding: '16px 20px',
+                    borderRadius: '12px',
+                    background: 'rgba(239, 68, 68, 0.06)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#ef4444' }}>
+                        <FiAlertCircle size={20} />
+                        <span style={{ fontSize: '13.5px', fontWeight: 500 }}>{error}</span>
                     </div>
-                    <button type="button" className="btn-student-outline" onClick={() => navigate('/student/courses')}>
-                        View Learning History <FiArrowRight />
+                    <button
+                        onClick={fetchDashboard}
+                        style={{
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #ef4444',
+                            background: 'transparent',
+                            color: '#ef4444',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Retry
                     </button>
-                </header>
-                <div className="heatmap-container" style={{ marginTop: '20px' }}>
-                    <ActivityHeatmap loginDates={loginDates} />
                 </div>
-            </motion.section>
+            )}
+
+            {/* 2. Stat Cards Grid Matching Admin/Mentor Overview */}
+            <div className="stats-grid" style={{ marginBottom: '8px' }}>
+                {/* Attendance Card */}
+                <div className="stat-card-enterprise">
+                    <div className="stat-header">
+                        <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10B981' }}>
+                            <FiTrendingUp size={20} />
+                        </div>
+                        <span className="stat-label-enterprise">Attendance Rate</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                        <span className="stat-val-enterprise">
+                            <CountUp value={stats?.attendancePercentage ?? 0} />%
+                        </span>
+                        <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>
+                            ({stats?.attendanceCount || 0} of {stats?.totalCourses || 4} modules)
+                        </span>
+                    </div>
+                </div>
+
+                {/* Assignments Card */}
+                <div className="stat-card-enterprise">
+                    <div className="stat-header">
+                        <div className="stat-icon-wrapper" style={{ background: 'rgba(79, 70, 229, 0.08)', color: '#4F46E5' }}>
+                            <FiCheckCircle size={20} />
+                        </div>
+                        <span className="stat-label-enterprise">Assignments</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                        <span className="stat-val-enterprise">
+                            <CountUp value={stats?.submittedAssignments || 0} />
+                        </span>
+                        <span style={{ fontSize: '13px', color: 'var(--admin-text-secondary)' }}>
+                            / {stats?.totalAssignments || 1} submitted
+                        </span>
+                    </div>
+                </div>
+
+                {/* Courses & Cohort Card */}
+                <div className="stat-card-enterprise">
+                    <div className="stat-header">
+                        <div className="stat-icon-wrapper" style={{ background: 'rgba(2, 132, 199, 0.1)', color: '#0284c7' }}>
+                            <FiBookOpen size={20} />
+                        </div>
+                        <span className="stat-label-enterprise">Learning Modules</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                        <span className="stat-val-enterprise">
+                            <CountUp value={stats?.totalCourses || 4} />
+                        </span>
+                        <span style={{ fontSize: '13px', color: 'var(--admin-text-secondary)' }}>
+                            active courses
+                        </span>
+                    </div>
+                </div>
+
+                {/* Learning Streak Card */}
+                <div className="stat-card-enterprise">
+                    <div className="stat-header">
+                        <div className="stat-icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B' }}>
+                            <FiCalendar size={20} />
+                        </div>
+                        <span className="stat-label-enterprise">Active Streak</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                        <span className="stat-val-enterprise">
+                            <CountUp value={stats?.activeDays || loginDates.length || 1} />
+                        </span>
+                        <span style={{ fontSize: '13px', color: 'var(--admin-text-secondary)' }}>
+                            active days
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* 3. Main Dashboard 2-Column Enterprise Layout */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1.2fr)',
+                gap: '24px',
+                alignItems: 'start'
+            }} className="student-home-grid">
+                {/* Left Column: Sessions & Announcements */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {/* Live Sessions & Meetings */}
+                    <div style={{
+                        background: 'var(--admin-surface)',
+                        borderRadius: '12px',
+                        border: '1.5px solid var(--admin-border-color)',
+                        padding: '20px',
+                        boxShadow: 'var(--shadow-card)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '8px',
+                                    background: 'rgba(79, 70, 229, 0.08)',
+                                    color: 'var(--admin-primary)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    <FiVideo size={16} />
+                                </div>
+                                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
+                                    Live Mentorship Sessions
+                                </h3>
+                            </div>
+                            <button
+                                onClick={() => navigate('/student/mentor')}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'var(--admin-primary)',
+                                    fontSize: '12.5px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}
+                            >
+                                View Hub <FiArrowRight size={13} />
+                            </button>
+                        </div>
+
+                        {upcomingSessions.length === 0 ? (
+                            <div style={{
+                                padding: '36px 16px',
+                                textAlign: 'center',
+                                color: 'var(--admin-text-muted)',
+                                border: '1px dashed var(--admin-border-color)',
+                                borderRadius: '10px'
+                            }}>
+                                <FiVideo size={28} style={{ opacity: 0.3, marginBottom: '6px' }} />
+                                <div style={{ fontSize: '13px', fontWeight: 500 }}>No upcoming meetings scheduled right now.</div>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {upcomingSessions.map((session) => (
+                                    <div
+                                        key={session.id}
+                                        style={{
+                                            padding: '14px 16px',
+                                            borderRadius: '10px',
+                                            border: '1px solid var(--admin-border-color)',
+                                            background: 'var(--admin-bg)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            flexWrap: 'wrap',
+                                            gap: '12px'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <img
+                                                src={session.mentor?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${session.mentor?.name || 'mentor'}`}
+                                                alt={session.mentor?.name}
+                                                style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
+                                            />
+                                            <div>
+                                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
+                                                    {session.title}
+                                                </h4>
+                                                <div style={{ fontSize: '12px', color: 'var(--admin-text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                                                    <span>Mentor: {session.mentor?.name || 'Assigned Mentor'}</span>
+                                                    <span>•</span>
+                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--admin-primary)', fontWeight: 500 }}>
+                                                        <FiClock size={12} /> {session.scheduledAt}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {session.meetingLink && (
+                                            <a
+                                                href={session.meetingLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                    padding: '7px 14px',
+                                                    borderRadius: '8px',
+                                                    background: 'var(--admin-primary)',
+                                                    color: '#ffffff',
+                                                    fontSize: '12.5px',
+                                                    fontWeight: 600,
+                                                    textDecoration: 'none',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
+                                                }}
+                                            >
+                                                Join Session <FiExternalLink size={13} />
+                                            </a>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Announcements Feed */}
+                    <div style={{
+                        background: 'var(--admin-surface)',
+                        borderRadius: '12px',
+                        border: '1.5px solid var(--admin-border-color)',
+                        padding: '20px',
+                        boxShadow: 'var(--shadow-card)'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                            <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '8px',
+                                background: 'rgba(245, 158, 11, 0.1)',
+                                color: '#F59E0B',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                <FiBell size={16} />
+                            </div>
+                            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
+                                Cohort Announcements
+                            </h3>
+                        </div>
+
+                        {announcements.length === 0 ? (
+                            <div style={{
+                                padding: '32px 16px',
+                                textAlign: 'center',
+                                color: 'var(--admin-text-muted)',
+                                border: '1px dashed var(--admin-border-color)',
+                                borderRadius: '10px'
+                            }}>
+                                <div style={{ fontSize: '13px' }}>No announcements broadcasted yet.</div>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {announcements.map((ann) => (
+                                    <div
+                                        key={ann.id}
+                                        style={{
+                                            padding: '12px 16px',
+                                            borderRadius: '8px',
+                                            border: '1px solid var(--admin-border-color)',
+                                            background: 'var(--admin-bg)'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                            <span style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--admin-text-primary)' }}>
+                                                {ann.title}
+                                            </span>
+                                            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>
+                                                {new Date(ann.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                            </span>
+                                        </div>
+                                        <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--admin-text-secondary)', lineHeight: 1.5 }}>
+                                            {ann.content}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Right Column: Mentor Profile & Learning Activity */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {/* Mentor Card */}
+                    <div style={{
+                        background: 'var(--admin-surface)',
+                        borderRadius: '12px',
+                        border: '1.5px solid var(--admin-border-color)',
+                        padding: '20px',
+                        boxShadow: 'var(--shadow-card)'
+                    }}>
+                        <span style={{
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            color: 'var(--admin-primary)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em'
+                        }}>
+                            Assigned Guidance
+                        </span>
+                        <h3 style={{ margin: '4px 0 16px 0', fontSize: '16px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
+                            Your Dedicated Mentor
+                        </h3>
+
+                        {activeMentor ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <img
+                                        src={activeMentor.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeMentor.name}`}
+                                        alt={activeMentor.name}
+                                        style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', background: '#f3f4f6' }}
+                                    />
+                                    <div>
+                                        <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--admin-text-primary)' }}>
+                                            {activeMentor.name}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: 'var(--admin-text-secondary)' }}>
+                                            {activeMentor.email}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p style={{
+                                    margin: 0,
+                                    fontSize: '12.5px',
+                                    color: 'var(--admin-text-secondary)',
+                                    lineHeight: 1.5,
+                                    padding: '10px 12px',
+                                    background: 'var(--admin-bg)',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--admin-border-color)'
+                                }}>
+                                    Available for 1-on-1 code reviews, curriculum doubt clearing, and career guidance.
+                                </p>
+
+                                <button
+                                    onClick={() => navigate(`/student/chat/${activeMentor.id}`)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '9px 16px',
+                                        borderRadius: '8px',
+                                        background: 'var(--admin-primary)',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        fontWeight: 600,
+                                        fontSize: '13px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px'
+                                    }}
+                                >
+                                    <FiMessageCircle size={15} /> Message Mentor
+                                </button>
+                            </div>
+                        ) : (
+                            <div style={{
+                                padding: '24px 16px',
+                                textAlign: 'center',
+                                color: 'var(--admin-text-muted)',
+                                border: '1px dashed var(--admin-border-color)',
+                                borderRadius: '8px'
+                            }}>
+                                <div style={{ fontSize: '13px' }}>Mentor assignment in progress for your cohort.</div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Recent Learning Activity */}
+                    <div style={{
+                        background: 'var(--admin-surface)',
+                        borderRadius: '12px',
+                        border: '1.5px solid var(--admin-border-color)',
+                        padding: '20px',
+                        boxShadow: 'var(--shadow-card)'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                            <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '8px',
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                color: '#10B981',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                <FiActivity size={16} />
+                            </div>
+                            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
+                                Recent Learning Stream
+                            </h3>
+                        </div>
+
+                        {recentActivities.length === 0 ? (
+                            <div style={{
+                                padding: '24px 16px',
+                                textAlign: 'center',
+                                color: 'var(--admin-text-muted)',
+                                border: '1px dashed var(--admin-border-color)',
+                                borderRadius: '8px'
+                            }}>
+                                <div style={{ fontSize: '13px' }}>No activities logged today. Explore lessons to begin tracking.</div>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {recentActivities.slice(0, 4).map((act) => (
+                                    <div
+                                        key={act.id}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '10px 12px',
+                                            borderRadius: '8px',
+                                            background: 'var(--admin-bg)',
+                                            border: '1px solid var(--admin-border-color)',
+                                            fontSize: '12.5px'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <FiCheckCircle size={14} style={{ color: 'var(--admin-success, #10B981)' }} />
+                                            <span style={{ color: 'var(--admin-text-primary)', fontWeight: 500 }}>
+                                                {act.description}
+                                            </span>
+                                        </div>
+                                        <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>
+                                            {new Date(act.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

@@ -39,8 +39,8 @@ const EditBatchModal = ({ batchId, onClose, onSuccess }) => {
 
                 // Map the nested join objects to flat user objects
                 setCurrentMembers({
-                    students: batch.students.map(bs => bs.student),
-                    mentors: batch.mentors.map(bm => bm.mentor)
+                    students: (batch.students || []).map(bs => bs.student || bs).filter(Boolean),
+                    mentors: (batch.mentors || []).map(bm => bm.mentor || bm.user || bm).filter(Boolean)
                 });
 
                 setAvailableStudents(studentsRes.data);
@@ -72,15 +72,18 @@ const EditBatchModal = ({ batchId, onClose, onSuccess }) => {
         try {
             if (type === 'student') {
                 await batchAPI.addStudents(batchId, [userId]);
-                // Optimistic update
                 const student = availableStudents.find(s => s.id === userId);
-                setCurrentMembers(prev => ({ ...prev, students: [...prev.students, student] }));
+                if (student) {
+                    setCurrentMembers(prev => ({ ...prev, students: [...prev.students.filter(s => s?.id !== userId), student] }));
+                }
             } else {
                 await batchAPI.addMentors(batchId, [userId]);
                 const mentor = availableMentors.find(m => m.id === userId);
-                setCurrentMembers(prev => ({ ...prev, mentors: [...prev.mentors, mentor] }));
+                if (mentor) {
+                    setCurrentMembers(prev => ({ ...prev, mentors: [...prev.mentors.filter(m => m?.id !== userId), mentor] }));
+                }
             }
-            onSuccess(); // silent refresh
+            if (onSuccess) onSuccess();
         } catch (err) {
             console.error("Add failed", err);
             alert("Failed to add member");
@@ -104,10 +107,11 @@ const EditBatchModal = ({ batchId, onClose, onSuccess }) => {
         }
     };
 
-    const filterUsers = (users, existingIds) => {
-        return users.filter(u =>
-            !existingIds.includes(u.id) &&
-            (u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase()))
+    const filterUsers = (users, existingIds = []) => {
+        const safeIds = (existingIds || []).filter(Boolean);
+        return (users || []).filter(u =>
+            u && !safeIds.includes(u.id) &&
+            ((u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (u.email || '').toLowerCase().includes(searchQuery.toLowerCase()))
         );
     };
 
@@ -206,7 +210,7 @@ const EditBatchModal = ({ batchId, onClose, onSuccess }) => {
                                                 <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-text-)', fontSize: 'var(--fs-body)', textTransform: 'uppercase' }}>
                                                     Current {activeTab} ({currentMembers[activeTab].length})
                                                 </h4>
-                                                {currentMembers[activeTab].map(user => (
+                                                {(currentMembers[activeTab] || []).filter(Boolean).map(user => (
                                                     <div key={user.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', borderBottom: '1px solid #f1f5f9' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                             <img src={user.avatar} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />

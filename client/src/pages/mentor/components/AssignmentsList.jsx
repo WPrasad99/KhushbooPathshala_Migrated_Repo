@@ -1,30 +1,41 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
     useMentorAssignments,
     useMentorBatches,
     useCreateAssignment,
-    useMentorQuizzes,
-    useCreateQuiz
+    useDeleteAssignment
 } from '../../../hooks/mentor/useMentorQueries';
-import {
-    ClipboardList, PlusSquare, X, Calendar, Target, Layout, Filter, ArrowRight,
-    HelpCircle, BookOpen, Clock, AlertCircle, CheckCircle2, MoreVertical, Trash2
-} from 'lucide-react';
+import { assignmentAPI, getApiErrorMessage } from '../../../api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getApiErrorMessage } from '../../../api';
-import '../../../components/admin/Modal.css';
+import {
+    FiFileText,
+    FiPlus,
+    FiCalendar,
+    FiCheckCircle,
+    FiClock,
+    FiX,
+    FiTrash2,
+    FiExternalLink,
+    FiDownload,
+    FiUsers,
+    FiLayers,
+    FiAlertCircle,
+    FiRefreshCw,
+    FiEdit3,
+    FiAward,
+    FiSend
+} from 'react-icons/fi';
 
-// --- MODALS ---
-
-const CreateAssignmentModal = ({ batchId, batches, onClose, onSuccess }) => {
+// --- CREATE ASSIGNMENT MODAL ---
+const CreateAssignmentModal = ({ batches, selectedBatchId, onClose, onSuccess }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [batchId, setBatchId] = useState(selectedBatchId || (batches[0]?.id || ''));
     const [dueDate, setDueDate] = useState('');
     const [maxMarks, setMaxMarks] = useState(100);
-    const [selectedBatchId, setSelectedBatchId] = useState(batchId || '');
-    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const createAssignment = useCreateAssignment();
 
@@ -34,21 +45,8 @@ const CreateAssignmentModal = ({ batchId, batches, onClose, onSuccess }) => {
         setLoading(true);
 
         try {
-            if (!selectedBatchId) {
+            if (!batchId) {
                 setError('Please select a target batch.');
-                setLoading(false);
-                return;
-            }
-
-            const parsedDate = new Date(dueDate);
-            if (isNaN(parsedDate.getTime())) {
-                setError('Please provide a valid deadline.');
-                setLoading(false);
-                return;
-            }
-
-            if (parsedDate < new Date()) {
-                setError('Deadline cannot be set in the past.');
                 setLoading(false);
                 return;
             }
@@ -56,546 +54,1090 @@ const CreateAssignmentModal = ({ batchId, batches, onClose, onSuccess }) => {
             await createAssignment.mutateAsync({
                 title,
                 description,
-                batchId: selectedBatchId,
-                dueDate: parsedDate.toISOString(),
-                maxMarks: Number(maxMarks)
+                batchId,
+                dueDate: dueDate || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+                maxMarks: Number(maxMarks) || 100
             });
 
             onSuccess();
             onClose();
         } catch (err) {
-            setError(getApiErrorMessage(err, 'Failed to create assignment. Please try again.'));
+            setError(getApiErrorMessage(err, 'Failed to publish assignment.'));
             setLoading(false);
         }
     };
 
     return createPortal(
         <AnimatePresence>
-            <motion.div
-                className="modal-overlay"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={onClose}
-                style={{ zIndex: 1000 }}
-            >
+            <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
                 <motion.div
-                    className="glass-modal"
-                    initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ maxWidth: '550px', width: '95%', borderRadius: 'var(--radius-2xl)' }}
+                    className="modal-content"
+                    initial={{ opacity: 0, scale: 0.96, y: 16 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96, y: 16 }}
+                    transition={{ duration: 0.2 }}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                        maxWidth: '560px',
+                        width: '95%',
+                        padding: 0,
+                        overflow: 'hidden',
+                        borderRadius: '16px',
+                        border: '1.5px solid var(--admin-border-color)'
+                    }}
                 >
-                    <div className="modal-header" style={{ padding: 'var(--space-20) var(--space-24)' }}>
-                        <h2 style={{ fontSize: 'var(--fs-h3)', margin: 0 }}>Issue New Task</h2>
-                        <button type="button" className="m-btn m-btn--ghost" onClick={onClose} aria-label="Close" style={{ padding: '8px', minHeight: 'unset' }}>
-                            <X size={20} />
+                    <div style={{
+                        padding: '18px 24px',
+                        borderBottom: '1px solid var(--admin-border-color)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: 'var(--admin-surface)'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '8px',
+                                background: 'rgba(79, 70, 229, 0.08)',
+                                color: 'var(--admin-primary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                <FiFileText size={18} />
+                            </div>
+                            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
+                                Issue New Assignment
+                            </h2>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--admin-text-muted)',
+                                cursor: 'pointer',
+                                padding: '6px'
+                            }}
+                        >
+                            <FiX size={18} />
                         </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                        <div className="modal-body" style={{ padding: 'var(--space-24)' }}>
+                    <form onSubmit={handleSubmit}>
+                        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             {error && (
-                                <div className="m-badge m-badge--error" style={{ width: '100%', marginBottom: 'var(--space-16)', padding: 'var(--space-12)', borderRadius: 'var(--radius-md)', justifyContent: 'center' }}>
-                                    {error}
+                                <div style={{
+                                    padding: '10px 14px',
+                                    borderRadius: '8px',
+                                    background: 'rgba(239, 68, 68, 0.08)',
+                                    color: '#ef4444',
+                                    fontSize: '12.5px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}>
+                                    <FiAlertCircle size={15} /> {error}
                                 </div>
                             )}
 
-                            <div className="m-form-group" style={{ marginBottom: 'var(--space-16)' }}>
-                                <label style={{ display: 'block', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-medium)', marginBottom: 'var(--space-8)', color: 'var(--text-secondary)' }}>Target Batch *</label>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--admin-text-secondary)', marginBottom: '6px' }}>
+                                    Target Batch Cohort *
+                                </label>
                                 <select
-                                    className="m-select"
-                                    value={selectedBatchId}
-                                    onChange={(e) => setSelectedBatchId(e.target.value)}
+                                    value={batchId}
+                                    onChange={(e) => setBatchId(e.target.value)}
                                     required
-                                    style={{ width: '100%' }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '9px 12px',
+                                        fontSize: '13px',
+                                        borderRadius: '8px',
+                                        border: '1.5px solid var(--admin-border-color)',
+                                        background: 'var(--admin-surface)',
+                                        color: 'var(--admin-text-primary)',
+                                        outline: 'none'
+                                    }}
                                 >
-                                    <option value="">Choose a batch...</option>
-                                    {(batches || []).map((b) => (
-                                        <option key={b.id} value={b.id}>{b.name}</option>
+                                    <option value="">Select batch...</option>
+                                    {(batches || []).map(b => (
+                                        <option key={b.id} value={b.id}>{b.name} ({b.code || 'COHORT'})</option>
                                     ))}
                                 </select>
                             </div>
 
-                            <div className="m-form-group" style={{ marginBottom: 'var(--space-16)' }}>
-                                <label style={{ display: 'block', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-medium)', marginBottom: 'var(--space-8)', color: 'var(--text-secondary)' }}>Assignment Title *</label>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--admin-text-secondary)', marginBottom: '6px' }}>
+                                    Assignment Title *
+                                </label>
                                 <input
                                     type="text"
-                                    className="m-search-input"
+                                    required
+                                    placeholder="e.g. Portfolio Website with React & Tailwind"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    placeholder="e.g. Full Stack Portfolio Project"
-                                    required
-                                    style={{ width: '100%', paddingLeft: 'var(--space-16)' }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '9px 12px',
+                                        fontSize: '13px',
+                                        borderRadius: '8px',
+                                        border: '1.5px solid var(--admin-border-color)',
+                                        background: 'var(--admin-surface)',
+                                        color: 'var(--admin-text-primary)',
+                                        outline: 'none'
+                                    }}
                                 />
                             </div>
 
-                            <div className="m-form-group" style={{ marginBottom: 'var(--space-16)' }}>
-                                <label style={{ display: 'block', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-medium)', marginBottom: 'var(--space-8)', color: 'var(--text-secondary)' }}>Project Requirements *</label>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--admin-text-secondary)', marginBottom: '6px' }}>
+                                    Instructions & Deliverables *
+                                </label>
                                 <textarea
-                                    className="m-search-input"
+                                    rows={4}
+                                    required
+                                    placeholder="Outline the assignment requirements, evaluation criteria, and acceptable deliverable formats..."
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="Provide detailed instructions and evaluation criteria..."
-                                    rows={4}
-                                    style={{ width: '100%', padding: 'var(--space-12) var(--space-16)', minHeight: '120px', resize: 'none' }}
-                                    required
+                                    style={{
+                                        width: '100%',
+                                        padding: '9px 12px',
+                                        fontSize: '13px',
+                                        borderRadius: '8px',
+                                        border: '1.5px solid var(--admin-border-color)',
+                                        background: 'var(--admin-surface)',
+                                        color: 'var(--admin-text-primary)',
+                                        outline: 'none',
+                                        resize: 'none'
+                                    }}
                                 />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-16)' }}>
-                                <div className="m-form-group">
-                                    <label style={{ display: 'block', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-medium)', marginBottom: 'var(--space-8)', color: 'var(--text-secondary)' }}>Submission Deadline *</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--admin-text-secondary)', marginBottom: '6px' }}>
+                                        Due Date *
+                                    </label>
                                     <input
                                         type="date"
-                                        className="m-search-input"
-                                        value={dueDate}
-                                        onChange={(e) => setDueDate(e.target.value)}
-                                        min={new Date().toISOString().split('T')[0]}
                                         required
-                                        style={{ width: '100%', paddingLeft: 'var(--space-16)' }}
+                                        value={dueDate}
+                                        min={new Date().toISOString().split('T')[0]}
+                                        onChange={(e) => setDueDate(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '9px 12px',
+                                            fontSize: '13px',
+                                            borderRadius: '8px',
+                                            border: '1.5px solid var(--admin-border-color)',
+                                            background: 'var(--admin-surface)',
+                                            color: 'var(--admin-text-primary)',
+                                            outline: 'none'
+                                        }}
                                     />
                                 </div>
-                                <div className="m-form-group">
-                                    <label style={{ display: 'block', fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-medium)', marginBottom: 'var(--space-8)', color: 'var(--text-secondary)' }}>Maximum Score</label>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--admin-text-secondary)', marginBottom: '6px' }}>
+                                        Max Marks
+                                    </label>
                                     <input
                                         type="number"
-                                        className="m-search-input"
+                                        min={10}
+                                        max={100}
                                         value={maxMarks}
                                         onChange={(e) => setMaxMarks(e.target.value)}
-                                        min={1}
-                                        max={100}
-                                        required
-                                        style={{ width: '100%', paddingLeft: 'var(--space-16)' }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '9px 12px',
+                                            fontSize: '13px',
+                                            borderRadius: '8px',
+                                            border: '1.5px solid var(--admin-border-color)',
+                                            background: 'var(--admin-surface)',
+                                            color: 'var(--admin-text-primary)',
+                                            outline: 'none'
+                                        }}
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="modal-actions" style={{ padding: 'var(--space-20) var(--space-24)', borderTop: '1px solid var(--color-border)' }}>
-                            <button type="button" className="m-btn m-btn--ghost" onClick={onClose}>
-                                Save as Draft
+                        <div style={{
+                            padding: '14px 24px',
+                            borderTop: '1px solid var(--admin-border-color)',
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: '10px',
+                            background: 'var(--admin-bg)'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--admin-border-color)',
+                                    background: 'var(--admin-surface)',
+                                    color: 'var(--admin-text-secondary)',
+                                    fontSize: '13px',
+                                    fontWeight: 500,
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
                             </button>
-                            <button type="submit" className="m-btn m-btn--primary" disabled={loading} style={{ marginLeft: 'auto' }}>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                style={{
+                                    padding: '8px 20px',
+                                    borderRadius: '8px',
+                                    background: 'var(--admin-primary)',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    fontWeight: 600,
+                                    fontSize: '13px',
+                                    cursor: loading ? 'not-allowed' : 'pointer',
+                                    opacity: loading ? 0.7 : 1
+                                }}
+                            >
                                 {loading ? 'Deploying...' : 'Publish Task'}
                             </button>
                         </div>
                     </form>
                 </motion.div>
-            </motion.div>
+            </div>
         </AnimatePresence>,
         document.body
     );
 };
 
-const CreateQuizModal = ({ batchId, batches, onClose, onSuccess }) => {
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [timeLimit, setTimeLimit] = useState(30);
-    const [selectedBatchId, setSelectedBatchId] = useState(batchId || '');
-    const [questions, setQuestions] = useState([{ question: '', options: ['', '', '', ''], correctAnswer: 0 }]);
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+// --- SUBMISSIONS & GRADING MODAL ---
+const SubmissionsGradingModal = ({ assignment, onClose, onRefresh }) => {
+    const [details, setDetails] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [reviewingId, setReviewingId] = useState(null);
+    const [gradeInput, setGradeInput] = useState('A');
+    const [feedbackInput, setFeedbackInput] = useState('');
+    const [submittingReview, setSubmittingReview] = useState(false);
 
-    const createQuiz = useCreateQuiz();
+    useEffect(() => {
+        loadAssignmentDetails();
+    }, [assignment.id]);
 
-    const addQuestion = () => {
-        setQuestions([...questions, { question: '', options: ['', '', '', ''], correctAnswer: 0 }]);
-    };
-
-    const removeQuestion = (index) => {
-        setQuestions(questions.filter((_, i) => i !== index));
-    };
-
-    const handleQuestionChange = (index, field, value) => {
-        const newQuestions = [...questions];
-        newQuestions[index][field] = value;
-        setQuestions(newQuestions);
-    };
-
-    const handleOptionChange = (qIndex, oIndex, value) => {
-        const newQuestions = [...questions];
-        newQuestions[qIndex].options[oIndex] = value;
-        setQuestions(newQuestions);
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
+    const loadAssignmentDetails = async () => {
         setLoading(true);
-
         try {
-            if (!selectedBatchId) throw new Error('Please select a batch.');
-            if (questions.some(q => !q.question || q.options.some(o => !o))) {
-                throw new Error('Please fill all question details.');
-            }
-
-            await createQuiz.mutateAsync({
-                title,
-                description,
-                batchId: selectedBatchId,
-                timeLimit: Number(timeLimit),
-                questions
-            });
-
-            onSuccess();
-            onClose();
+            const res = await assignmentAPI.getAssignmentDetails(assignment.id);
+            setDetails(res.data);
         } catch (err) {
-            setError(getApiErrorMessage(err, 'Failed to create quiz.'));
+            console.error('Failed to load assignment details:', err);
+        } finally {
             setLoading(false);
         }
     };
 
+    const handleSaveReview = async (submissionId) => {
+        setSubmittingReview(true);
+        try {
+            await assignmentAPI.reviewSubmission(submissionId, {
+                grade: gradeInput,
+                feedback: feedbackInput || 'Well executed! Keep up the solid momentum.',
+                status: 'REVIEWED'
+            });
+            setReviewingId(null);
+            await loadAssignmentDetails();
+            if (onRefresh) onRefresh();
+        } catch (err) {
+            alert('Failed to save review. Please try again.');
+        } finally {
+            setSubmittingReview(false);
+        }
+    };
+
+    const startReview = (sub) => {
+        setReviewingId(sub.id);
+        setGradeInput(sub.grade || 'A');
+        setFeedbackInput(sub.feedback || '');
+    };
+
+    const submissions = details?.submissions || [];
+
     return createPortal(
         <AnimatePresence>
-            <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} style={{ zIndex: 1100 }}>
+            <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
                 <motion.div
-                    className="glass-modal"
-                    initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ maxWidth: '800px', width: '95%', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+                    className="modal-content"
+                    initial={{ opacity: 0, scale: 0.96, y: 16 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96, y: 16 }}
+                    transition={{ duration: 0.2 }}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                        maxWidth: '820px',
+                        width: '95%',
+                        padding: 0,
+                        overflow: 'hidden',
+                        borderRadius: '16px',
+                        border: '1.5px solid var(--admin-border-color)'
+                    }}
                 >
-                    <div className="modal-header" style={{ padding: 'var(--space-20) var(--space-24)' }}>
-                        <h2>Create Assessment Quiz</h2>
-                        <button type="button" className="m-btn m-btn--ghost" onClick={onClose} style={{ padding: '8px' }}><X size={20} /></button>
+                    {/* Header */}
+                    <div style={{
+                        padding: '18px 24px',
+                        borderBottom: '1px solid var(--admin-border-color)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: 'var(--admin-surface)'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                                width: '38px',
+                                height: '38px',
+                                borderRadius: '8px',
+                                background: 'rgba(79, 70, 229, 0.08)',
+                                color: 'var(--admin-primary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                <FiAward size={20} />
+                            </div>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
+                                    {assignment.title}
+                                </h2>
+                                <span style={{ fontSize: '12px', color: 'var(--admin-text-secondary)' }}>
+                                    Due: {new Date(assignment.dueDate || assignment.due_date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} • Max Marks: {assignment.maxMarks || 100}
+                                </span>
+                            </div>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--admin-text-muted)',
+                                cursor: 'pointer',
+                                padding: '6px'
+                            }}
+                        >
+                            <FiX size={18} />
+                        </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                        <div className="modal-body" style={{ padding: 'var(--space-24)', overflowY: 'auto' }}>
-                            {error && <div className="m-badge m-badge--error" style={{ width: '100%', marginBottom: 'var(--space-16)', padding: '12px' }}>{error}</div>}
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                                <div className="m-form-group">
-                                    <label className="m-label">Target Batch *</label>
-                                    <select className="m-select" value={selectedBatchId} onChange={(e) => setSelectedBatchId(e.target.value)} required>
-                                        <option value="">Select Batch...</option>
-                                        {batches.map(b => (
-                                            <option key={b.id} value={b.id}>{b.name}</option>
-                                        ))}
-                                    </select>
+                    {/* Body */}
+                    <div style={{ padding: '20px 24px', maxHeight: '60vh', overflowY: 'auto' }}>
+                        {loading ? (
+                            <div style={{ padding: '36px', textAlign: 'center', color: 'var(--admin-text-muted)' }}>
+                                <FiRefreshCw className="spin" size={24} style={{ marginBottom: '8px' }} />
+                                <div>Loading submitted deliverables...</div>
+                            </div>
+                        ) : submissions.length === 0 ? (
+                            <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--admin-text-muted)' }}>
+                                <FiClock size={36} style={{ opacity: 0.3, marginBottom: '8px' }} />
+                                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
+                                    No Student Submissions Yet
                                 </div>
-                                <div className="m-form-group">
-                                    <label className="m-label">Time Limit (Minutes) *</label>
-                                    <input type="number" className="m-search-input" value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} placeholder="e.g. 30" required />
+                                <div style={{ fontSize: '12.5px', marginTop: '4px' }}>
+                                    Students in this batch have not turned in their work for this assignment yet.
                                 </div>
                             </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                {submissions.map(sub => {
+                                    const student = sub.student || {};
+                                    const isReviewed = sub.status === 'REVIEWED';
+                                    const isBeingReviewed = reviewingId === sub.id;
 
-                            <div className="m-form-group" style={{ marginBottom: '16px' }}>
-                                <label className="m-label">Quiz Title *</label>
-                                <input type="text" className="m-search-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. React Fundamentals Quiz" required />
-                            </div>
+                                    return (
+                                        <div
+                                            key={sub.id}
+                                            style={{
+                                                borderRadius: '10px',
+                                                border: '1px solid var(--admin-border-color)',
+                                                background: 'var(--admin-surface)',
+                                                padding: '16px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '12px'
+                                            }}
+                                        >
+                                            {/* Student Info & Submission Date */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <img
+                                                        src={student.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sub.studentId || 'std'}`}
+                                                        alt={student.name}
+                                                        style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover', background: '#f3f4f6' }}
+                                                    />
+                                                    <div>
+                                                        <div style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--admin-text-primary)' }}>
+                                                            {student.name || 'Student Deliverable'}
+                                                        </div>
+                                                        <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>
+                                                            {student.email || 'Enrolled Student'}
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-                            <div className="m-form-group" style={{ marginBottom: '24px' }}>
-                                <label className="m-label">Overview / Legend</label>
-                                <textarea className="m-search-input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of the quiz..." rows={2} />
-                            </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <span style={{
+                                                        fontSize: '11px',
+                                                        fontWeight: 600,
+                                                        padding: '3px 8px',
+                                                        borderRadius: '6px',
+                                                        background: isReviewed ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                                                        color: isReviewed ? 'var(--admin-success, #10B981)' : '#f59e0b'
+                                                    }}>
+                                                        {isReviewed ? `Graded: ${sub.grade}` : 'Needs Review'}
+                                                    </span>
+                                                    <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>
+                                                        {new Date(sub.submittedAt || Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                </div>
+                                            </div>
 
-                            <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '24px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                    <h3 style={{ margin: 0, fontSize: 'var(--fs-body-lg)' }}>Questions ({questions.length})</h3>
-                                    <button type="button" className="m-btn m-btn--secondary" onClick={addQuestion} style={{ padding: '4px 12px', fontSize: 'var(--fs-small)' }}>
-                                        <PlusSquare size={16} /> Add Question
-                                    </button>
-                                </div>
+                                            {/* Deliverable Link / File */}
+                                            <div style={{
+                                                padding: '10px 14px',
+                                                borderRadius: '8px',
+                                                background: 'var(--admin-bg)',
+                                                border: '1px solid var(--admin-border-color)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                flexWrap: 'wrap',
+                                                gap: '8px'
+                                            }}>
+                                                <div style={{ fontSize: '12.5px', color: 'var(--admin-text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <FiFileText size={14} style={{ color: 'var(--admin-primary)' }} />
+                                                    {sub.notes ? (
+                                                        <span><strong>Notes:</strong> {sub.notes}</span>
+                                                    ) : (
+                                                        <span>Submitted work deliverable</span>
+                                                    )}
+                                                </div>
 
-                                {questions.map((q, qIdx) => (
-                                    <div key={qIdx} style={{ background: 'var(--color-surface-muted)', padding: '20px', borderRadius: 'var(--radius-xl)', marginBottom: '16px', border: '1px solid var(--color-border)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                            <span style={{ fontWeight: 'var(--fw-bold)', fontSize: '12px', color: 'var(--color-primary)' }}>QUESTION {qIdx + 1}</span>
-                                            {questions.length > 1 && (
-                                                <button type="button" onClick={() => removeQuestion(qIdx)} style={{ color: 'var(--color-error)', background: 'none' }}><Trash2 size={16} /></button>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    {sub.submissionUrl && (
+                                                        <a
+                                                            href={sub.submissionUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            style={{
+                                                                padding: '4px 10px',
+                                                                borderRadius: '6px',
+                                                                background: 'rgba(79, 70, 229, 0.08)',
+                                                                color: 'var(--admin-primary)',
+                                                                fontSize: '12px',
+                                                                fontWeight: 600,
+                                                                textDecoration: 'none',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px'
+                                                            }}
+                                                        >
+                                                            Open Link <FiExternalLink size={12} />
+                                                        </a>
+                                                    )}
+                                                    {sub.filePath && (
+                                                        <a
+                                                            href={sub.filePath}
+                                                            download
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            style={{
+                                                                padding: '4px 10px',
+                                                                borderRadius: '6px',
+                                                                background: 'rgba(16, 185, 129, 0.08)',
+                                                                color: 'var(--admin-success, #10B981)',
+                                                                fontSize: '12px',
+                                                                fontWeight: 600,
+                                                                textDecoration: 'none',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px'
+                                                            }}
+                                                        >
+                                                            Download <FiDownload size={12} />
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Review Display or Form */}
+                                            {isBeingReviewed ? (
+                                                <div style={{
+                                                    padding: '12px',
+                                                    borderRadius: '8px',
+                                                    background: 'rgba(79, 70, 229, 0.04)',
+                                                    border: '1.5px solid rgba(79, 70, 229, 0.2)',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    gap: '10px'
+                                                }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '10px' }}>
+                                                        <div>
+                                                            <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--admin-text-secondary)', display: 'block', marginBottom: '4px' }}>
+                                                                Grade / Score
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="e.g. A+ or 95"
+                                                                value={gradeInput}
+                                                                onChange={(e) => setGradeInput(e.target.value)}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    padding: '7px 10px',
+                                                                    fontSize: '12.5px',
+                                                                    borderRadius: '6px',
+                                                                    border: '1px solid var(--admin-border-color)',
+                                                                    background: 'var(--admin-surface)',
+                                                                    color: 'var(--admin-text-primary)',
+                                                                    outline: 'none'
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--admin-text-secondary)', display: 'block', marginBottom: '4px' }}>
+                                                                Constructive Feedback
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Great attention to detail, clean components..."
+                                                                value={feedbackInput}
+                                                                onChange={(e) => setFeedbackInput(e.target.value)}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    padding: '7px 10px',
+                                                                    fontSize: '12.5px',
+                                                                    borderRadius: '6px',
+                                                                    border: '1px solid var(--admin-border-color)',
+                                                                    background: 'var(--admin-surface)',
+                                                                    color: 'var(--admin-text-primary)',
+                                                                    outline: 'none'
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                                        <button
+                                                            onClick={() => setReviewingId(null)}
+                                                            style={{
+                                                                padding: '6px 12px',
+                                                                borderRadius: '6px',
+                                                                background: 'transparent',
+                                                                border: '1px solid var(--admin-border-color)',
+                                                                color: 'var(--admin-text-secondary)',
+                                                                fontSize: '12px',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleSaveReview(sub.id)}
+                                                            disabled={submittingReview}
+                                                            style={{
+                                                                padding: '6px 16px',
+                                                                borderRadius: '6px',
+                                                                background: 'var(--admin-primary)',
+                                                                color: '#ffffff',
+                                                                border: 'none',
+                                                                fontSize: '12px',
+                                                                fontWeight: 600,
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px'
+                                                            }}
+                                                        >
+                                                            <FiSend size={12} /> {submittingReview ? 'Saving...' : 'Save Evaluation'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : isReviewed ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                                                    <div style={{ color: 'var(--admin-text-secondary)' }}>
+                                                        <strong>Feedback:</strong> {sub.feedback || 'Good work!'}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => startReview(sub)}
+                                                        style={{
+                                                            background: 'transparent',
+                                                            border: 'none',
+                                                            color: 'var(--admin-primary)',
+                                                            fontSize: '12px',
+                                                            fontWeight: 600,
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px'
+                                                        }}
+                                                    >
+                                                        <FiEdit3 size={12} /> Edit Grade
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                                    <button
+                                                        onClick={() => startReview(sub)}
+                                                        style={{
+                                                            padding: '6px 14px',
+                                                            borderRadius: '6px',
+                                                            background: 'var(--admin-primary)',
+                                                            color: '#ffffff',
+                                                            border: 'none',
+                                                            fontSize: '12px',
+                                                            fontWeight: 600,
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '6px'
+                                                        }}
+                                                    >
+                                                        <FiAward size={13} /> Grade Deliverable
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
-                                        <input
-                                            className="m-search-input"
-                                            style={{ marginBottom: '16px', background: 'var(--color-surface)' }}
-                                            value={q.question}
-                                            onChange={(e) => handleQuestionChange(qIdx, 'question', e.target.value)}
-                                            placeholder="Enter question text..."
-                                        />
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                            {q.options.map((opt, oIdx) => (
-                                                <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <input
-                                                        type="radio"
-                                                        name={`correct-${qIdx}`}
-                                                        checked={q.correctAnswer === oIdx}
-                                                        onChange={() => handleQuestionChange(qIdx, 'correctAnswer', oIdx)}
-                                                    />
-                                                    <input
-                                                        className="m-search-input"
-                                                        style={{ background: 'var(--color-surface)', height: '36px', fontSize: 'var(--fs-small)' }}
-                                                        value={opt}
-                                                        onChange={(e) => handleOptionChange(qIdx, oIdx, e.target.value)}
-                                                        placeholder={`Option ${oIdx + 1}`}
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
-                        </div>
+                        )}
+                    </div>
 
-                        <div className="modal-actions" style={{ padding: 'var(--space-20) var(--space-24)', borderTop: '1px solid var(--color-border)' }}>
-                            <button type="button" className="m-btn m-btn--ghost" onClick={onClose}>Cancel</button>
-                            <button type="submit" className="m-btn m-btn--primary" disabled={loading} style={{ marginLeft: 'auto' }}>
-                                {loading ? 'Creating Quiz...' : 'Finalize & Publish Quiz'}
-                            </button>
-                        </div>
-                    </form>
+                    {/* Footer */}
+                    <div style={{
+                        padding: '14px 24px',
+                        borderTop: '1px solid var(--admin-border-color)',
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        background: 'var(--admin-bg)'
+                    }}>
+                        <button
+                            onClick={onClose}
+                            style={{
+                                padding: '8px 20px',
+                                borderRadius: '8px',
+                                background: 'var(--admin-primary)',
+                                color: '#ffffff',
+                                border: 'none',
+                                fontWeight: 600,
+                                fontSize: '13px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Done
+                        </button>
+                    </div>
                 </motion.div>
-            </motion.div>
+            </div>
         </AnimatePresence>,
         document.body
     );
 };
 
-// --- MAIN COMPONENT ---
-
+// --- MAIN ASSIGNMENTS COMPONENT ---
 const AssignmentsList = () => {
-    const { data: batches } = useMentorBatches();
-    const [selectedBatch, setSelectedBatch] = useState('');
-    const [activeTab, setActiveTab] = useState('assignments'); // 'assignments' | 'quizzes'
+    const { data: batchesData } = useMentorBatches();
+    const batches = Array.isArray(batchesData) ? batchesData : [];
+
+    const [selectedBatchId, setSelectedBatchId] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [gradingAssignment, setGradingAssignment] = useState(null);
 
-    const initialSetDone = useRef(false);
-
+    // Auto select first batch
     useEffect(() => {
-        if (initialSetDone.current || !batches || batches.length === 0) return;
-        initialSetDone.current = true;
-        setSelectedBatch(batches[0].id);
-    }, [batches]);
+        if (!selectedBatchId && batches.length > 0) {
+            setSelectedBatchId(batches[0].id);
+        }
+    }, [batches, selectedBatchId]);
 
-    const { data: assignmentsData, isLoading: isLoadingAssignments, isError: isAssignError, refetch: refetchAssign } = useMentorAssignments(selectedBatch);
-    const { data: quizzesData, isLoading: isLoadingQuizzes, isError: isQuizError, refetch: refetchQuizzes } = useMentorQuizzes(selectedBatch);
+    const { data: assignmentsData, isLoading, isError, refetch } = useMentorAssignments(selectedBatchId);
+    const deleteAssignment = useDeleteAssignment();
 
     const assignments = Array.isArray(assignmentsData) ? assignmentsData : [];
-    const quizzes = Array.isArray(quizzesData) ? quizzesData : [];
 
-    const handleSuccess = () => {
-        if (activeTab === 'assignments') refetchAssign();
-        else refetchQuizzes();
+    const handleDelete = async (id, title) => {
+        if (window.confirm(`Are you sure you want to delete assignment "${title}"?`)) {
+            try {
+                await deleteAssignment.mutateAsync(id);
+            } catch (err) {
+                alert('Failed to delete assignment.');
+            }
+        }
     };
 
-    if (isAssignError || isQuizError) {
-        return (
-            <div className="m-section">
-                <div className="m-empty-state">
-                    <AlertCircle size={48} style={{ opacity: 0.2 }} />
-                    <h3 className="m-empty-state__title">Data Sync Error</h3>
-                    <p className="m-empty-state__desc">We couldn't synchronize your academic records. Please try reconnecting.</p>
-                    <button className="m-btn m-btn--primary" onClick={() => window.location.reload()}>Retry Sync</button>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="m-section">
-            <header className="mentor-page-header">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Header */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '16px'
+            }}>
                 <div>
-                    <h2 className="mentor-page-title">Curriculum & Assessments</h2>
-                    <p className="mentor-page-subtitle">Publish tasks, host quizzes, and monitor student performance benchmarks.</p>
+                    <h1 style={{
+                        margin: 0,
+                        fontSize: '22px',
+                        fontWeight: 600,
+                        letterSpacing: '-0.02em',
+                        color: 'var(--admin-text-primary)'
+                    }}>
+                        Curriculum Tasks & Assignments
+                    </h1>
+                    <p style={{
+                        margin: '4px 0 0 0',
+                        fontSize: '13.5px',
+                        color: 'var(--admin-text-secondary)'
+                    }}>
+                        Deploy milestones, evaluate student deliverables, and provide personalized grade feedback.
+                    </p>
                 </div>
-                <div className="mentor-header-actions">
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <button
-                        className="m-btn m-btn--primary shadow-sm"
-                        disabled={!selectedBatch}
                         onClick={() => setShowCreateModal(true)}
+                        style={{
+                            padding: '9px 18px',
+                            borderRadius: '8px',
+                            background: 'var(--admin-primary)',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontWeight: 600,
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)'
+                        }}
                     >
-                        {activeTab === 'assignments' ? (
-                            <><PlusSquare size={18} /> Issue New Task</>
-                        ) : (
-                            <><HelpCircle size={18} /> Create New Quiz</>
-                        )}
+                        <FiPlus size={16} /> Issue Task
                     </button>
                 </div>
-            </header>
-
-            {/* TAB NAVIGATION */}
-            <div style={{ display: 'flex', gap: 'var(--space-8)', marginBottom: 'var(--space-16)', background: 'var(--color-surface-muted)', padding: '6px', borderRadius: 'var(--radius-lg)', width: 'fit-content' }}>
-                <button
-                    onClick={() => setActiveTab('assignments')}
-                    className={`m-btn ${activeTab === 'assignments' ? 'm-btn--secondary' : 'm-btn--ghost'}`}
-                    style={{ minHeight: '36px', padding: '0 20px', borderRadius: 'var(--radius-md)' }}
-                >
-                    <ClipboardList size={16} /> Assignments
-                </button>
-                <button
-                    onClick={() => setActiveTab('quizzes')}
-                    className={`m-btn ${activeTab === 'quizzes' ? 'm-btn--secondary' : 'm-btn--ghost'}`}
-                    style={{ minHeight: '36px', padding: '0 20px', borderRadius: 'var(--radius-md)' }}
-                >
-                    <HelpCircle size={16} /> Quizzes
-                </button>
             </div>
 
-            <div className="m-card" style={{ padding: 'var(--space-16)', marginBottom: 'var(--space-20)', border: '1px dashed var(--color-border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-16)', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
-                        <Layout size={18} />
-                        <span style={{ fontSize: 'var(--fs-small)', fontWeight: 'var(--fw-medium)' }}>Active Filter:</span>
-                    </div>
+            {/* Batch Selector Bar */}
+            <div style={{
+                background: 'var(--admin-surface)',
+                borderRadius: '12px',
+                border: '1.5px solid var(--admin-border-color)',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--admin-text-secondary)' }}>
+                        Target Cohort:
+                    </span>
                     <select
-                        className="m-select"
-                        value={selectedBatch}
-                        onChange={(e) => setSelectedBatch(e.target.value)}
-                        style={{ minWidth: '240px', flex: 1, border: 'none', background: 'transparent', fontWeight: 'var(--fw-semibold)' }}
+                        value={selectedBatchId}
+                        onChange={(e) => setSelectedBatchId(e.target.value)}
+                        style={{
+                            padding: '7px 12px',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            borderRadius: '8px',
+                            border: '1.5px solid var(--admin-border-color)',
+                            background: 'var(--admin-bg)',
+                            color: 'var(--admin-text-primary)',
+                            outline: 'none',
+                            minWidth: '220px'
+                        }}
                     >
-                        <option value="">Select a batch to manage content...</option>
-                        {Array.isArray(batches) && batches.map(b => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
+                        {batches.map(b => (
+                            <option key={b.id} value={b.id}>{b.name} ({b.code || 'COHORT'})</option>
                         ))}
                     </select>
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '12px' }}>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                            {activeTab === 'assignments' ? `${assignments.length} Tasks` : `${quizzes.length} Quizzes`} Found
-                        </div>
-                    </div>
+                </div>
+
+                <div style={{ fontSize: '12.5px', color: 'var(--admin-text-muted)' }}>
+                    {assignments.length} {assignments.length === 1 ? 'task' : 'tasks'} issued for this cohort
                 </div>
             </div>
 
-            <div className="m-grid-3">
-                {!selectedBatch ? (
-                    <div className="m-empty-state" style={{ gridColumn: '1 / -1', padding: '100px 24px' }}>
-                        <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ repeat: Infinity, duration: 2, repeatType: 'reverse' }}>
-                            <Layout size={48} style={{ opacity: 0.2, color: 'var(--color-primary)' }} />
-                        </motion.div>
-                        <h3 className="m-empty-state__title">Ready to post content?</h3>
-                        <p className="m-empty-state__desc">Select a batch from the dropdown above to manage its academic lifecycle.</p>
+            {/* Error banner */}
+            {isError && (
+                <div style={{
+                    padding: '20px',
+                    borderRadius: '12px',
+                    background: 'rgba(239, 68, 68, 0.06)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#ef4444' }}>
+                        <FiAlertCircle size={20} />
+                        <span style={{ fontSize: '13.5px', fontWeight: 500 }}>Failed to sync batch assignments.</span>
                     </div>
-                ) : (isLoadingAssignments || isLoadingQuizzes) ? (
-                    Array(6).fill(0).map((_, i) => (
-                        <div key={i} className="m-skeleton m-skeleton--h200 shadow-sm" />
-                    ))
-                ) : activeTab === 'assignments' ? (
-                    assignments.length > 0 ? (
-                        assignments.map((assign, idx) => (
+                    <button
+                        onClick={() => refetch()}
+                        style={{
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #ef4444',
+                            background: 'transparent',
+                            color: '#ef4444',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Retry
+                    </button>
+                </div>
+            )}
+
+            {/* Loading */}
+            {isLoading && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
+                    {[1, 2].map(i => (
+                        <div
+                            key={i}
+                            style={{
+                                height: '220px',
+                                borderRadius: '12px',
+                                background: 'var(--admin-surface)',
+                                border: '1.5px solid var(--admin-border-color)',
+                                opacity: 0.6,
+                                animation: 'pulse 1.5s infinite'
+                            }}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Empty state */}
+            {!isLoading && !isError && assignments.length === 0 && (
+                <div style={{
+                    padding: '56px 24px',
+                    borderRadius: '14px',
+                    border: '1.5px dashed var(--admin-border-color)',
+                    background: 'var(--admin-surface)',
+                    textAlign: 'center'
+                }}>
+                    <div style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '14px',
+                        background: 'rgba(79, 70, 229, 0.08)',
+                        color: 'var(--admin-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 16px auto'
+                    }}>
+                        <FiFileText size={26} />
+                    </div>
+                    <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
+                        No Assignments Created
+                    </h3>
+                    <p style={{ margin: '0 auto 16px auto', maxWidth: '380px', fontSize: '13px', color: 'var(--admin-text-secondary)' }}>
+                        You haven't issued any curriculum tasks or projects to this cohort yet. Click below to issue the first assignment.
+                    </p>
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        style={{
+                            padding: '8px 18px',
+                            borderRadius: '8px',
+                            background: 'var(--admin-primary)',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                        }}
+                    >
+                        + Issue First Task
+                    </button>
+                </div>
+            )}
+
+            {/* Assignments Grid */}
+            {!isLoading && !isError && assignments.length > 0 && (
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+                    gap: '20px'
+                }}>
+                    {assignments.map(assign => {
+                        const subsCount = assign.submissionsCount || 0;
+                        const reviewedCount = assign.reviewedCount || 0;
+                        const totalStudents = assign.batchStudentsCount || 3;
+
+                        return (
                             <motion.div
                                 key={assign.id}
-                                initial={{ opacity: 0, y: 10 }}
+                                initial={{ opacity: 0, y: 8 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: idx * 0.05 }}
-                                className="m-card m-card--interactive shadow-sm border-hover"
-                                style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-16)', border: '1px solid var(--color-border)' }}
+                                whileHover={{ y: -3 }}
+                                transition={{ duration: 0.18 }}
+                                style={{
+                                    background: 'var(--admin-surface)',
+                                    borderRadius: '12px',
+                                    border: '1.5px solid var(--admin-border-color)',
+                                    padding: '20px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '16px',
+                                    boxShadow: 'var(--shadow-card)',
+                                    position: 'relative'
+                                }}
                             >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <div style={{ background: 'var(--color-primary-soft)', padding: '8px', borderRadius: '10px' }}>
-                                        <ClipboardList size={20} style={{ color: 'var(--color-primary)' }} />
+                                {/* Top Header */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                                        <div style={{
+                                            width: '38px',
+                                            height: '38px',
+                                            borderRadius: '8px',
+                                            background: 'rgba(79, 70, 229, 0.08)',
+                                            color: 'var(--admin-primary)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0
+                                        }}>
+                                            <FiFileText size={18} />
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <h3 style={{
+                                                margin: 0,
+                                                fontSize: '15px',
+                                                fontWeight: 600,
+                                                color: 'var(--admin-text-primary)',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis'
+                                            }}>
+                                                {assign.title}
+                                            </h3>
+                                            <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>
+                                                Max Score: {assign.maxMarks || 100} Pts
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="m-badge m-badge--success" style={{ fontSize: '10px' }}>Ongoing</div>
-                                </div>
-                                <div>
-                                    <h3 style={{ fontSize: 'var(--fs-body-lg)', color: 'var(--text-primary)', margin: '0 0 8px 0' }}>{assign.title}</h3>
-                                    <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-small)', lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                        {assign.description}
-                                    </p>
-                                </div>
 
-                                <div style={{ background: 'var(--color-surface-muted)', padding: '12px', borderRadius: 'var(--radius-lg)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: 'auto' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
-                                        <Target size={12} />
-                                        <span>{assign.maxMarks} Marks</span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--color-warning)' }}>
-                                        <Calendar size={12} />
-                                        <span>Deadline: {new Date(assign.dueDate).toLocaleDateString()}</span>
-                                    </div>
-                                </div>
-
-                                <button className="m-btn m-btn--primary" style={{ width: '100%', fontSize: 'var(--fs-small)', minHeight: '38px' }}>
-                                    Grade Submissions <ArrowRight size={14} style={{ marginLeft: '4px' }} />
-                                </button>
-                            </motion.div>
-                        ))
-                    ) : (
-                        <div className="m-empty-state" style={{ gridColumn: '1 / -1', padding: '80px 24px' }}>
-                            <div style={{ background: 'var(--color-primary-soft)', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-                                <ClipboardList size={32} style={{ color: 'var(--color-primary)' }} />
-                            </div>
-                            <h3 className="m-empty-state__title">Empty Assignment Board</h3>
-                            <p className="m-empty-state__desc">You haven't issued any specific tasks to this batch yet. Start their learning journey now.</p>
-                            <button className="m-btn m-btn--primary" onClick={() => setShowCreateModal(true)}>Deploy First Task</button>
-                        </div>
-                    )
-                ) : (
-                    // QUIZZES TAB
-                    quizzes.length > 0 ? (
-                        quizzes.map((quiz, idx) => (
-                            <motion.div
-                                key={quiz.id}
-                                initial={{ opacity: 0, scale: 0.98 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: idx * 0.05 }}
-                                className="m-card m-card--interactive shadow-sm"
-                                style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-16)', border: '1px solid var(--color-border)' }}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <div style={{ background: 'var(--color-warning-soft)', padding: '8px', borderRadius: '10px' }}>
-                                        <BookOpen size={20} style={{ color: 'var(--color-warning)' }} />
-                                    </div>
-                                    <div className="m-badge m-badge--info" style={{ fontSize: '10px' }}>Live Quiz</div>
-                                </div>
-                                <div>
-                                    <h3 style={{ fontSize: 'var(--fs-body-lg)', color: 'var(--text-primary)', margin: '0 0 8px 0' }}>{quiz.title}</h3>
-                                    <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-small)', lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                        {quiz.questions?.length || 0} Multiple choice questions covering batch specific topics.
-                                    </p>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: 'auto' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
-                                        <Clock size={12} />
-                                        <span>{quiz.timeLimit} Mins Limit</span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--color-success)' }}>
-                                        <CheckCircle2 size={12} />
-                                        <span>Auto-graded</span>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button className="m-btn m-btn--ghost" style={{ flex: 1, fontSize: 'var(--fs-small)', minHeight: '38px' }}>
-                                        Analyze Results
-                                    </button>
-                                    <button className="m-btn m-btn--ghost" style={{ padding: '8px', minWidth: 'unset' }}>
-                                        <MoreVertical size={16} />
+                                    <button
+                                        onClick={() => handleDelete(assign.id, assign.title)}
+                                        title="Delete Task"
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: 'var(--admin-text-muted)',
+                                            cursor: 'pointer',
+                                            padding: '6px',
+                                            borderRadius: '6px'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                                        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--admin-text-muted)'}
+                                    >
+                                        <FiTrash2 size={15} />
                                     </button>
                                 </div>
-                            </motion.div>
-                        ))
-                    ) : (
-                        <div className="m-empty-state" style={{ gridColumn: '1 / -1', padding: '80px 24px' }}>
-                            <div style={{ background: 'var(--color-warning-soft)', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-                                <HelpCircle size={32} style={{ color: 'var(--color-warning)' }} />
-                            </div>
-                            <h3 className="m-empty-state__title">No Assessments Issued</h3>
-                            <p className="m-empty-state__desc">Host a quiz to benchmark student knowledge and identify learning gaps.</p>
-                            <button className="m-btn m-btn--primary" onClick={() => setShowCreateModal(true)}>Create First Quiz</button>
-                        </div>
-                    )
-                )}
-            </div>
 
-            {showCreateModal && activeTab === 'assignments' && (
+                                {/* Description */}
+                                <p style={{
+                                    margin: 0,
+                                    fontSize: '13px',
+                                    color: 'var(--admin-text-secondary)',
+                                    lineHeight: 1.5,
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden'
+                                }}>
+                                    {assign.description || 'Milestone project deliverable covering core curriculum competencies.'}
+                                </p>
+
+                                {/* Submission Stats Strip */}
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 1fr',
+                                    gap: '8px',
+                                    background: 'var(--admin-bg)',
+                                    padding: '10px 14px',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--admin-border-color)'
+                                }}>
+                                    <div>
+                                        <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>Deliverables</div>
+                                        <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--admin-text-primary)', marginTop: '2px' }}>
+                                            {subsCount} / {totalStudents} submitted
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>Evaluations</div>
+                                        <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--admin-success, #10B981)', marginTop: '2px' }}>
+                                            {reviewedCount} graded
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Footer & Action */}
+                                <div style={{
+                                    marginTop: 'auto',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: '8px'
+                                }}>
+                                    <span style={{ fontSize: '12px', color: 'var(--admin-text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <FiCalendar size={12} />
+                                        Due {new Date(assign.dueDate || assign.due_date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                    </span>
+
+                                    <button
+                                        onClick={() => setGradingAssignment(assign)}
+                                        style={{
+                                            padding: '7px 14px',
+                                            borderRadius: '8px',
+                                            background: 'var(--admin-primary)',
+                                            color: '#ffffff',
+                                            border: 'none',
+                                            fontSize: '12.5px',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        <FiAward size={13} /> Review Submissions
+                                    </button>
+                                </div>
+                            </motion.div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Create Assignment Modal */}
+            {showCreateModal && (
                 <CreateAssignmentModal
-                    batchId={selectedBatch}
-                    batches={Array.isArray(batches) ? batches : []}
+                    batches={batches}
+                    selectedBatchId={selectedBatchId}
                     onClose={() => setShowCreateModal(false)}
-                    onSuccess={handleSuccess}
+                    onSuccess={() => refetch()}
                 />
             )}
 
-            {showCreateModal && activeTab === 'quizzes' && (
-                <CreateQuizModal
-                    batchId={selectedBatch}
-                    batches={Array.isArray(batches) ? batches : []}
-                    onClose={() => setShowCreateModal(false)}
-                    onSuccess={handleSuccess}
+            {/* Grading Modal */}
+            {gradingAssignment && (
+                <SubmissionsGradingModal
+                    assignment={gradingAssignment}
+                    onClose={() => setGradingAssignment(null)}
+                    onRefresh={() => refetch()}
                 />
             )}
         </div>

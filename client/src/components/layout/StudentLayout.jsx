@@ -1,131 +1,344 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-    FiBook,
-    FiChevronLeft,
+    FiBarChart2,
+    FiBookOpen,
+    FiMap,
     FiFileText,
-    FiHome,
-    FiMessageSquare,
-    FiSettings,
     FiUsers,
+    FiMessageSquare,
     FiMessageCircle,
-    FiMap
+    FiBell,
+    FiSun,
+    FiMoon,
+    FiLogOut,
+    FiMenu,
+    FiX,
+    FiSettings,
+    FiTrash2
 } from 'react-icons/fi';
-import Navbar from '../student/Navbar';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../api';
 import ChatBot from '../ChatBot';
+import '../../pages/admin/AdminDashboard.css';
+import './MentorLayout.css';
 
-const navigationGroups = [
-    {
-        label: 'Core',
-        items: [
-            { to: '/student', icon: FiHome, label: 'Overview', end: true },
-            { to: '/student/courses', icon: FiBook, label: 'Learning' },
-            { to: '/student/roadmap', icon: FiMap, label: 'AI Roadmap' },
-            { to: '/student/assignments', icon: FiFileText, label: 'Assignments' }
-        ]
-    },
-    {
-        label: 'Community',
-        items: [
-            { to: '/student/mentor', icon: FiUsers, label: 'Mentorship' },
-            { to: '/student/forum', icon: FiMessageSquare, label: 'Forum' },
-            { to: '/student/messages', icon: FiMessageCircle, label: 'Messages' }
-        ]
-    },
-    {
-        label: 'Account',
-        items: [
-            { to: '/student/settings', icon: FiSettings, label: 'Profile' }
-        ]
-    }
+const studentNavItems = [
+    { to: '/student', icon: FiBarChart2, label: 'Overview', end: true },
+    { to: '/student/roadmap', icon: FiMap, label: 'Roadmap' },
+    { to: '/student/courses', icon: FiBookOpen, label: 'Courses' },
+    { to: '/student/assignments', icon: FiFileText, label: 'Assignments' },
+    { to: '/student/mentor', icon: FiUsers, label: 'Mentorship' },
+    { to: '/student/forum', icon: FiMessageSquare, label: 'Forum' },
+    { to: '/student/messages', icon: FiMessageCircle, label: 'Messages' }
 ];
 
 const StudentLayout = () => {
+    const { user, logout, socket } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
+
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [theme, setTheme] = useState(localStorage.getItem('student-theme') || 'light');
+    const [unreadNotifications, setUnreadNotifications] = useState(0);
+    const [notifications, setNotifications] = useState([]);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [liveNotification, setLiveNotification] = useState(null);
+
     const isMessagesPage = location.pathname.includes('/messages') || location.pathname.includes('/chat/');
 
-    const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem('kp-sidebar-collapsed') === 'true');
-    const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-
     useEffect(() => {
-        localStorage.setItem('kp-sidebar-collapsed', String(isCollapsed));
-    }, [isCollapsed]);
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('student-theme', theme);
+    }, [theme]);
 
+    const toggleTheme = () => {
+        setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    };
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
+    // Socket.io notification listener
     useEffect(() => {
-        setIsMobileNavOpen(false);
-    }, [location.pathname]);
+        if (!socket) return;
 
-    const sidebarFooterText = useMemo(() => {
-        if (location.pathname.includes('/assignments')) {
-            return 'Submit pending work before the deadline to protect your streak.';
+        const handleNotification = (data) => {
+            setUnreadNotifications(prev => prev + 1);
+            if (data) {
+                const title = data.title || data.name || 'New Notification';
+                const message = data.message || data.content || data.description || 'You have an update in your dashboard.';
+                setLiveNotification({
+                    id: Date.now(),
+                    title,
+                    message,
+                    createdAt: new Date()
+                });
+                setTimeout(() => setLiveNotification(null), 5000);
+            }
+        };
+
+        socket.on('notification', handleNotification);
+        socket.on('new_announcement', handleNotification);
+
+        return () => {
+            socket.off('notification', handleNotification);
+            socket.off('new_announcement', handleNotification);
+        };
+    }, [socket]);
+
+    const loadNotifications = async () => {
+        try {
+            const res = await api.get('/notifications');
+            setNotifications(res.data || []);
+            await api.put('/notifications/read');
+            setUnreadNotifications(0);
+        } catch (error) {
+            console.error('Failed to load notifications', error);
         }
+    };
 
-        if (location.pathname.includes('/courses')) {
-            return 'Consistency beats intensity. Complete one lesson today.';
+    const handleToggleNotifications = async () => {
+        if (!showNotifications) {
+            await loadNotifications();
         }
+        setShowNotifications(state => !state);
+    };
 
-        return 'Your dashboard is optimized for focused daily progress.';
-    }, [location.pathname]);
+    const handleDeleteNotification = async (event, id) => {
+        event.stopPropagation();
+        try {
+            await api.delete(`/notifications/${id}`);
+            setNotifications((current) => current.filter((item) => item.id !== id));
+        } catch (error) {
+            console.error('Failed to delete notification', error);
+        }
+    };
+
+    const formatTime = (dateString) => {
+        const date = new Date(dateString);
+        const now = Date.now();
+        const minutesDiff = Math.floor((now - date.getTime()) / (1000 * 60));
+
+        if (minutesDiff < 1) return 'Just now';
+        if (minutesDiff < 60) return `${minutesDiff}m ago`;
+        const hoursDiff = Math.floor(minutesDiff / 60);
+        if (hoursDiff < 24) return `${hoursDiff}h ago`;
+        return `${Math.floor(hoursDiff / 24)}d ago`;
+    };
 
     return (
-        <div className={`kp-shell ${isCollapsed ? 'is-collapsed' : ''}`}>
-            <aside className={`kp-sidebar ${isMobileNavOpen ? 'is-open' : ''}`}>
-                <div className="kp-sidebar-header">
-                    <button className="kp-sidebar-brand" onClick={() => navigate('/student')}>
-                        <img src="/logo.png" alt="Khushboo Pathshala" />
-                        <span>Khushboo Pathshala</span>
-                    </button>
+        <div className="dashboard-page mentor-page-wrapper">
+            {/* Top Navbar matching Admin and Mentor layout */}
+            <nav className="admin-navbar">
+                <div className="navbar-brand-mentor" onClick={() => navigate('/student')} style={{ cursor: 'pointer' }}>
+                    <img src="/logo.png" alt="Logo" className="navbar-logo" style={{ height: '36px', width: 'auto' }} />
+                    <span className="mentor-logo-text">Khushboo Pathshala</span>
                 </div>
 
-                <div className="kp-sidebar-nav">
-                    {navigationGroups.map((group) => (
-                        <section key={group.label} className="kp-nav-group">
-                            <h5>{group.label}</h5>
-                            <div className="kp-nav-list">
-                                {group.items.map((item) => {
-                                    const Icon = item.icon;
+                {/* Mobile Menu Button */}
+                <button className="mobile-menu-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                    {isMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+                </button>
 
-                                    return (
-                                        <NavLink
-                                            key={item.to}
-                                            to={item.to}
-                                            end={item.end}
-                                            className={({ isActive }) => `kp-nav-link ${isActive ? 'is-active' : ''}`}
-                                            data-tooltip={item.label}
-                                        >
-                                            <Icon className="kp-nav-icon" />
-                                            <span className="kp-nav-label">{item.label}</span>
-                                        </NavLink>
-                                    );
-                                })}
+                <div className="navbar-actions-mentor">
+                    <div className="mentor-tabs-container nav-links-desktop">
+                        <div className="mentor-tabs">
+                            {studentNavItems.map((item) => {
+                                const Icon = item.icon;
+                                return (
+                                    <NavLink
+                                        key={item.to}
+                                        to={item.to}
+                                        end={item.end}
+                                        className={({ isActive }) => `mentor-tab ${isActive ? 'active' : ''}`}
+                                    >
+                                        <Icon size={16} />
+                                        <span>{item.label}</span>
+                                    </NavLink>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="navbar-right-actions">
+                        {/* Theme Toggle */}
+                        <button
+                            className="icon-btn"
+                            onClick={toggleTheme}
+                            title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+                        >
+                            {theme === 'light' ? <FiMoon size={18} /> : <FiSun size={18} />}
+                        </button>
+
+                        {/* Notifications */}
+                        <div className="notification-wrapper" style={{ position: 'relative' }}>
+                            <button
+                                className="icon-btn"
+                                onClick={handleToggleNotifications}
+                                title="Notifications"
+                            >
+                                <FiBell size={18} />
+                                {unreadNotifications > 0 && (
+                                    <span className="notification-dot" />
+                                )}
+                            </button>
+
+                            {/* Notifications Dropdown */}
+                            {showNotifications && (
+                                <div className="notifications-dropdown">
+                                    <div className="notifications-header">
+                                        <h3>Notifications</h3>
+                                        {unreadNotifications > 0 && (
+                                            <span className="unread-count">{unreadNotifications} new</span>
+                                        )}
+                                    </div>
+                                    <div className="notifications-list">
+                                        {notifications.length === 0 ? (
+                                            <div className="no-notifications">No new updates</div>
+                                        ) : (
+                                            notifications.map((notification) => (
+                                                <div key={notification.id} className="notification-item">
+                                                    <div className="notification-content">
+                                                        <h4>{notification.title}</h4>
+                                                        <p>{notification.message}</p>
+                                                        <span className="notification-time">
+                                                            {formatTime(notification.created_at || notification.createdAt)}
+                                                        </span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        className="notification-delete-btn"
+                                                        onClick={(event) => handleDeleteNotification(event, notification.id)}
+                                                        title="Delete notification"
+                                                    >
+                                                        <FiTrash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* User Profile Pill */}
+                        <div className="user-info-pill" onClick={() => navigate('/student/settings')} style={{ cursor: 'pointer' }}>
+                            <img
+                                src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Student'}`}
+                                alt={user?.name}
+                                className="avatar-sm"
+                            />
+                            <span className="user-name-text">
+                                {user?.name?.split(' ')[0] || 'Student'} (Student)
+                            </span>
+                        </div>
+
+                        {/* Logout Button */}
+                        <button className="icon-btn" onClick={handleLogout} title="Sign Out">
+                            <FiLogOut size={18} />
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            {/* Mobile Navigation Drawer Portal */}
+            {isMenuOpen && ReactDOM.createPortal(
+                <AnimatePresence>
+                    <motion.div
+                        className="mobile-drawer-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsMenuOpen(false)}
+                        style={{
+                            position: 'fixed',
+                            inset: 0,
+                            background: 'rgba(0, 0, 0, 0.45)',
+                            backdropFilter: 'blur(3px)',
+                            zIndex: 99998
+                        }}
+                    />
+                    <motion.div
+                        className="mobile-drawer"
+                        initial={{ x: '100%' }}
+                        animate={{ x: 0 }}
+                        exit={{ x: '100%' }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            right: 0,
+                            width: '280px',
+                            height: '100vh',
+                            background: 'var(--admin-surface)',
+                            borderLeft: '1px solid var(--admin-border-color)',
+                            zIndex: 99999,
+                            padding: '24px 20px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '20px'
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <img src="/logo.png" alt="Logo" style={{ height: '30px' }} />
+                                <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--admin-text-primary)' }}>Student Portal</span>
                             </div>
-                        </section>
-                    ))}
+                            <button onClick={() => setIsMenuOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer' }}>
+                                <FiX size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                            {studentNavItems.map((item) => {
+                                const Icon = item.icon;
+                                return (
+                                    <NavLink
+                                        key={item.to}
+                                        to={item.to}
+                                        end={item.end}
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className={({ isActive }) => `tab-btn ${isActive ? 'active' : ''}`}
+                                        style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px' }}
+                                    >
+                                        <Icon size={18} />
+                                        <span>{item.label}</span>
+                                    </NavLink>
+                                );
+                            })}
+                        </div>
+
+                        <div style={{ borderTop: '1px solid var(--admin-border-color)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <button onClick={toggleTheme} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', color: 'var(--admin-text-secondary)', cursor: 'pointer', fontSize: '13px' }}>
+                                {theme === 'light' ? <FiMoon size={16} /> : <FiSun size={16} />}
+                                <span>{theme === 'light' ? 'Dark' : 'Light'} Mode</span>
+                            </button>
+                            <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>
+                                <FiLogOut size={16} /> Logout
+                            </button>
+                        </div>
+                    </motion.div>
+                </AnimatePresence>,
+                document.body
+            )}
+
+            {/* Live Pop Toast */}
+            {liveNotification && (
+                <div className="live-notification-toast">
+                    <h4>{liveNotification.title}</h4>
+                    <p>{liveNotification.message}</p>
                 </div>
+            )}
 
-                <div className="kp-sidebar-footer">
-                    <p>{sidebarFooterText}</p>
-                </div>
-            </aside>
-
-            <div className="kp-shell-column">
-                <Navbar
-                    onOpenMobileNav={() => setIsMobileNavOpen(true)}
-                    onToggleSidebar={() => setIsCollapsed((state) => !state)}
-                />
-
-                <main className={`kp-shell-content ${isMessagesPage ? 'is-messaging' : ''}`}>
-                    <Outlet />
-                </main>
-            </div>
-
-            <button
-                type="button"
-                className={`kp-mobile-backdrop ${isMobileNavOpen ? 'is-visible' : ''}`}
-                onClick={() => setIsMobileNavOpen(false)}
-                aria-label="Close mobile sidebar"
-            />
+            {/* Main Content Viewport */}
+            <main className={`mentor-content-viewport ${isMessagesPage ? 'is-messaging' : ''}`}>
+                <Outlet />
+            </main>
 
             {!isMessagesPage && <ChatBot />}
         </div>
