@@ -86,7 +86,39 @@ const MentorProgram = () => {
         }
     };
 
-    const activeMentor = mentorship?.mentor || (mentorship?.mentors && mentorship.mentors[0]) || null;
+    const assignedMentors = React.useMemo(() => {
+        const list = [];
+        const seen = new Set();
+        if (Array.isArray(mentorship?.mentors)) {
+            mentorship.mentors.forEach(m => {
+                if (m && m.id && !seen.has(m.id)) {
+                    seen.add(m.id);
+                    list.push(m);
+                }
+            });
+        }
+        if (Array.isArray(batches)) {
+            batches.forEach(b => {
+                if (Array.isArray(b.mentors)) {
+                    b.mentors.forEach(m => {
+                        if (m && m.id && !seen.has(m.id)) {
+                            seen.add(m.id);
+                            list.push(m);
+                        }
+                    });
+                } else if (b.mentor && !seen.has(b.mentor.id)) {
+                    seen.add(b.mentor.id);
+                    list.push(b.mentor);
+                }
+            });
+        }
+        if (list.length === 0 && mentorship?.mentor) {
+            list.push(mentorship.mentor);
+        }
+        return list;
+    }, [mentorship, batches]);
+
+    const activeMentor = assignedMentors[0] || mentorship?.mentor || null;
     const activeBatch = batches[0] || null;
 
     return (
@@ -167,7 +199,7 @@ const MentorProgram = () => {
                             textTransform: 'uppercase',
                             letterSpacing: '0.05em'
                         }}>
-                            Dedicated Mentor
+                            {assignedMentors.length > 1 ? `Assigned Mentors (${assignedMentors.length})` : 'Dedicated Mentor'}
                         </span>
                         <span style={{
                             fontSize: '11px',
@@ -181,87 +213,102 @@ const MentorProgram = () => {
                         </span>
                     </div>
 
-                    {activeMentor ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                <img
-                                    src={activeMentor.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeMentor.name}`}
-                                    alt={activeMentor.name}
-                                    style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', background: '#f3f4f6' }}
-                                />
-                                <div>
-                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
-                                        {activeMentor.name}
-                                    </h3>
-                                    <div style={{ fontSize: '12.5px', color: 'var(--admin-text-secondary)', marginTop: '2px' }}>
-                                        Senior Engineering Mentor • Cybage Software
+                    {assignedMentors.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            {assignedMentors.map((mentor, idx) => (
+                                <div
+                                    key={mentor.id || idx}
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '14px',
+                                        padding: assignedMentors.length > 1 ? '16px' : '0',
+                                        background: assignedMentors.length > 1 ? 'var(--admin-bg)' : 'transparent',
+                                        borderRadius: '10px',
+                                        border: assignedMentors.length > 1 ? '1px solid var(--admin-border-color)' : 'none'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                        <img
+                                            src={mentor.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${mentor.name}`}
+                                            alt={mentor.name}
+                                            style={{ width: '52px', height: '52px', borderRadius: '50%', objectFit: 'cover', background: '#f3f4f6' }}
+                                        />
+                                        <div style={{ flex: 1 }}>
+                                            <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
+                                                {mentor.name}
+                                            </h3>
+                                            <div style={{ fontSize: '12.5px', color: 'var(--admin-text-secondary)', marginTop: '2px' }}>
+                                                Senior Engineering Mentor • Cybage Software
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginTop: '6px', fontSize: '12px', color: 'var(--admin-text-muted)' }}>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <FiMail size={12} /> {mentor.email}
+                                                </span>
+                                                {mentor.phone && (
+                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <FiPhone size={12} /> {mentor.phone}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', fontSize: '12px', color: 'var(--admin-text-muted)' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <FiMail size={12} /> {activeMentor.email}
-                                        </span>
-                                        {activeMentor.phone && (
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <FiPhone size={12} /> {activeMentor.phone}
-                                            </span>
-                                        )}
+
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <button
+                                            onClick={() => navigate(`/student/chat/${mentor.id}`)}
+                                            style={{
+                                                flex: 1,
+                                                padding: '8px 14px',
+                                                borderRadius: '8px',
+                                                background: 'var(--admin-primary)',
+                                                color: '#ffffff',
+                                                border: 'none',
+                                                fontWeight: 600,
+                                                fontSize: '12.5px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '6px'
+                                            }}
+                                        >
+                                            <FiMessageCircle size={14} /> Message {mentor.name.split(' ')[0]}
+                                        </button>
+                                        <button
+                                            onClick={() => setShowScheduleModal(true)}
+                                            style={{
+                                                padding: '8px 14px',
+                                                borderRadius: '8px',
+                                                background: 'var(--admin-surface)',
+                                                color: 'var(--admin-text-primary)',
+                                                border: '1px solid var(--admin-border-color)',
+                                                fontWeight: 600,
+                                                fontSize: '12.5px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}
+                                        >
+                                            <FiCalendar size={13} /> Schedule 1:1
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
+                            ))}
 
                             <p style={{
                                 margin: 0,
-                                fontSize: '13px',
+                                fontSize: '12.5px',
                                 color: 'var(--admin-text-secondary)',
                                 lineHeight: 1.5,
-                                padding: '12px 14px',
+                                padding: '10px 12px',
                                 background: 'var(--admin-bg)',
                                 borderRadius: '8px',
                                 border: '1px solid var(--admin-border-color)'
                             }}>
-                                Your assigned mentor provides personalized code reviews, architectural feedback, and professional career mentorship throughout your curriculum.
+                                Your assigned mentors provide personalized code reviews, architectural feedback, and professional career mentorship throughout your curriculum.
                             </p>
-
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <button
-                                    onClick={() => navigate(`/student/chat/${activeMentor.id}`)}
-                                    style={{
-                                        flex: 1,
-                                        padding: '9px 16px',
-                                        borderRadius: '8px',
-                                        background: 'var(--admin-primary)',
-                                        color: '#ffffff',
-                                        border: 'none',
-                                        fontWeight: 600,
-                                        fontSize: '13px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '8px'
-                                    }}
-                                >
-                                    <FiMessageCircle size={15} /> Message Mentor
-                                </button>
-                                <button
-                                    onClick={() => setShowScheduleModal(true)}
-                                    style={{
-                                        padding: '9px 16px',
-                                        borderRadius: '8px',
-                                        background: 'var(--admin-bg)',
-                                        color: 'var(--admin-text-primary)',
-                                        border: '1px solid var(--admin-border-color)',
-                                        fontWeight: 600,
-                                        fontSize: '13px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '6px'
-                                    }}
-                                >
-                                    <FiCalendar size={14} /> Schedule 1:1
-                                </button>
-                            </div>
                         </div>
                     ) : (
                         <div style={{

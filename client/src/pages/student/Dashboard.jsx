@@ -89,7 +89,38 @@ const StudentDashboard = () => {
     } = dashboardData || {};
 
     const activeBatch = batches[0] || null;
-    const activeMentor = activeBatch?.mentor || null;
+
+    // Collect all unique mentors assigned to the student's batches
+    const assignedMentors = useMemo(() => {
+        const list = [];
+        const seen = new Set();
+        if (Array.isArray(dashboardData?.mentors)) {
+            dashboardData.mentors.forEach(m => {
+                if (m && m.id && !seen.has(m.id)) {
+                    seen.add(m.id);
+                    list.push(m);
+                }
+            });
+        }
+        if (Array.isArray(batches)) {
+            batches.forEach(b => {
+                if (Array.isArray(b.mentors)) {
+                    b.mentors.forEach(m => {
+                        if (m && m.id && !seen.has(m.id)) {
+                            seen.add(m.id);
+                            list.push(m);
+                        }
+                    });
+                } else if (b.mentor && !seen.has(b.mentor.id)) {
+                    seen.add(b.mentor.id);
+                    list.push(b.mentor);
+                }
+            });
+        }
+        return list;
+    }, [dashboardData, batches]);
+
+    const activeMentor = assignedMentors[0] || activeBatch?.mentor || null;
 
     const currentDate = new Date().toLocaleDateString('en-US', {
         weekday: 'long',
@@ -501,63 +532,79 @@ const StudentDashboard = () => {
                             textTransform: 'uppercase',
                             letterSpacing: '0.05em'
                         }}>
-                            Assigned Guidance
+                            {assignedMentors.length > 1 ? `Assigned Mentors (${assignedMentors.length})` : 'Assigned Guidance'}
                         </span>
                         <h3 style={{ margin: '4px 0 16px 0', fontSize: '16px', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
-                            Your Dedicated Mentor
+                            {assignedMentors.length > 1 ? 'Your Assigned Mentors' : 'Your Dedicated Mentor'}
                         </h3>
 
-                        {activeMentor ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <img
-                                        src={activeMentor.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeMentor.name}`}
-                                        alt={activeMentor.name}
-                                        style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', background: '#f3f4f6' }}
-                                    />
-                                    <div>
-                                        <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--admin-text-primary)' }}>
-                                            {activeMentor.name}
-                                        </div>
-                                        <div style={{ fontSize: '12px', color: 'var(--admin-text-secondary)' }}>
-                                            {activeMentor.email}
+                        {assignedMentors.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                {assignedMentors.map((mentor, mIdx) => (
+                                    <div
+                                        key={mentor.id || mIdx}
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '10px',
+                                            padding: assignedMentors.length > 1 ? '12px' : '0',
+                                            background: assignedMentors.length > 1 ? 'var(--admin-bg)' : 'transparent',
+                                            borderRadius: '10px',
+                                            border: assignedMentors.length > 1 ? '1px solid var(--admin-border-color)' : 'none'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <img
+                                                    src={mentor.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${mentor.name}`}
+                                                    alt={mentor.name}
+                                                    style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', background: '#f3f4f6' }}
+                                                />
+                                                <div>
+                                                    <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--admin-text-primary)' }}>
+                                                        {mentor.name}
+                                                    </div>
+                                                    <div style={{ fontSize: '11.5px', color: 'var(--admin-text-secondary)' }}>
+                                                        {mentor.email}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => navigate(`/student/chat/${mentor.id}`)}
+                                                style={{
+                                                    padding: '7px 12px',
+                                                    borderRadius: '8px',
+                                                    background: 'var(--admin-primary)',
+                                                    color: '#ffffff',
+                                                    border: 'none',
+                                                    fontWeight: 600,
+                                                    fontSize: '12px',
+                                                    cursor: 'pointer',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    whiteSpace: 'nowrap'
+                                                }}
+                                                title={`Chat with ${mentor.name}`}
+                                            >
+                                                <FiMessageCircle size={14} /> Message
+                                            </button>
                                         </div>
                                     </div>
-                                </div>
+                                ))}
 
                                 <p style={{
                                     margin: 0,
-                                    fontSize: '12.5px',
+                                    fontSize: '12px',
                                     color: 'var(--admin-text-secondary)',
                                     lineHeight: 1.5,
-                                    padding: '10px 12px',
+                                    padding: '8px 10px',
                                     background: 'var(--admin-bg)',
                                     borderRadius: '8px',
                                     border: '1px solid var(--admin-border-color)'
                                 }}>
-                                    Available for 1-on-1 code reviews, curriculum doubt clearing, and career guidance.
+                                    Mentors provide 1-on-1 code reviews, curriculum doubt clearing, and career guidance.
                                 </p>
-
-                                <button
-                                    onClick={() => navigate(`/student/chat/${activeMentor.id}`)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '9px 16px',
-                                        borderRadius: '8px',
-                                        background: 'var(--admin-primary)',
-                                        color: '#ffffff',
-                                        border: 'none',
-                                        fontWeight: 600,
-                                        fontSize: '13px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '8px'
-                                    }}
-                                >
-                                    <FiMessageCircle size={15} /> Message Mentor
-                                </button>
                             </div>
                         ) : (
                             <div style={{
