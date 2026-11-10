@@ -183,7 +183,7 @@ All test accounts are pre-seeded in `khushboo_drupal.sql`:
 | **Mentor** | `rakesh.sinha@cybage.com` | `password123` | Mentee review, video uploads, session scheduler, assignment grading |
 | **Mentor** | `priya.sharma@cybage.com` | `password123` | Alternate mentor with distinct assigned batches |
 | **Student** | `anita.sharma@example.com` | `password123` | Full-Stack cohort scholar with live attendance, assignments, and roadmaps |
-| **Student** | `prasad.wadkar@example.com` | `password123` | Dedicated student account with full interactive history |
+| **Student** | `prasad@example.com` | `password123` | Dedicated student account with full interactive history |
 
 ---
 

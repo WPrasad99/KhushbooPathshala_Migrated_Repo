@@ -20,7 +20,7 @@ import {
 } from 'react-icons/fi';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../api';
+import api, { chatAPI } from '../../api';
 import ChatBot from '../ChatBot';
 import '../../pages/admin/AdminDashboard.css';
 import './MentorLayout.css';
@@ -43,11 +43,25 @@ const StudentLayout = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [theme, setTheme] = useState(localStorage.getItem('student-theme') || 'light');
     const [unreadNotifications, setUnreadNotifications] = useState(0);
+    const [unreadChatMessages, setUnreadChatMessages] = useState(0);
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [liveNotification, setLiveNotification] = useState(null);
 
     const isMessagesPage = location.pathname.includes('/messages') || location.pathname.includes('/chat/');
+
+    // Fetch initial notifications & unread counts on mount
+    useEffect(() => {
+        loadNotifications();
+    }, []);
+
+    // Clear unread messages when user visits the messages page
+    useEffect(() => {
+        if (isMessagesPage) {
+            chatAPI.markRead().catch(() => {});
+            setUnreadChatMessages(0);
+        }
+    }, [isMessagesPage]);
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
@@ -63,7 +77,7 @@ const StudentLayout = () => {
         navigate('/login');
     };
 
-    // Socket.io notification listener
+    // Socket.io notification & message listener
     useEffect(() => {
         if (!socket) return;
 
@@ -82,21 +96,43 @@ const StudentLayout = () => {
             }
         };
 
+        const handleChatMessage = (msg) => {
+            const isOwn = (msg?.senderId || msg?.sender?.id) === user?.id;
+            if (!isOwn && msg) {
+                if (!isMessagesPage) {
+                    setUnreadChatMessages(prev => prev + 1);
+                }
+                const senderName = msg.sender?.name || 'Contact';
+                setLiveNotification({
+                    id: Date.now(),
+                    title: `💬 New message from ${senderName}`,
+                    message: msg.content || 'Sent an attachment',
+                    createdAt: new Date()
+                });
+                setTimeout(() => setLiveNotification(null), 5000);
+            }
+        };
+
         socket.on('notification', handleNotification);
         socket.on('new_announcement', handleNotification);
+        socket.on('message:new', handleChatMessage);
 
         return () => {
             socket.off('notification', handleNotification);
             socket.off('new_announcement', handleNotification);
+            socket.off('message:new', handleChatMessage);
         };
-    }, [socket]);
+    }, [socket, user?.id, isMessagesPage]);
 
     const loadNotifications = async () => {
         try {
             const res = await api.get('/notifications');
-            setNotifications(res.data || []);
-            await api.put('/notifications/read');
-            setUnreadNotifications(0);
+            const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+            setNotifications(list);
+            const unreadChat = list.filter(n => !n.isRead && n.type === 'CHAT').length;
+            setUnreadChatMessages(unreadChat);
+            const otherUnread = list.filter(n => !n.isRead && n.type !== 'CHAT').length;
+            setUnreadNotifications(otherUnread);
         } catch (error) {
             console.error('Failed to load notifications', error);
         }
@@ -105,6 +141,8 @@ const StudentLayout = () => {
     const handleToggleNotifications = async () => {
         if (!showNotifications) {
             await loadNotifications();
+            api.get('/notifications', { params: { action: 'read' } }).catch(() => {});
+            setUnreadNotifications(0);
         }
         setShowNotifications(state => !state);
     };
@@ -112,7 +150,7 @@ const StudentLayout = () => {
     const handleDeleteNotification = async (event, id) => {
         event.stopPropagation();
         try {
-            await api.delete(`/notifications/${id}`);
+            await api.get('/notifications', { params: { action: 'delete', id } });
             setNotifications((current) => current.filter((item) => item.id !== id));
         } catch (error) {
             console.error('Failed to delete notification', error);
@@ -150,15 +188,20 @@ const StudentLayout = () => {
                         <div className="mentor-tabs">
                             {studentNavItems.map((item) => {
                                 const Icon = item.icon;
+                                const isMessagesTab = item.label === 'Messages';
                                 return (
                                     <NavLink
                                         key={item.to}
                                         to={item.to}
                                         end={item.end}
                                         className={({ isActive }) => `mentor-tab ${isActive ? 'active' : ''}`}
+                                        style={{ position: 'relative' }}
                                     >
                                         <Icon size={16} />
                                         <span>{item.label}</span>
+                                        {isMessagesTab && unreadChatMessages > 0 && (
+                                            <span className="nav-message-badge">{unreadChatMessages}</span>
+                                        )}
                                     </NavLink>
                                 );
                             })}
@@ -297,6 +340,7 @@ const StudentLayout = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
                             {studentNavItems.map((item) => {
                                 const Icon = item.icon;
+                                const isMessagesTab = item.label === 'Messages';
                                 return (
                                     <NavLink
                                         key={item.to}
@@ -304,10 +348,13 @@ const StudentLayout = () => {
                                         end={item.end}
                                         onClick={() => setIsMenuOpen(false)}
                                         className={({ isActive }) => `tab-btn ${isActive ? 'active' : ''}`}
-                                        style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px' }}
+                                        style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px', position: 'relative' }}
                                     >
                                         <Icon size={18} />
                                         <span>{item.label}</span>
+                                        {isMessagesTab && unreadChatMessages > 0 && (
+                                            <span className="nav-message-badge" style={{ right: '14px', top: '12px' }}>{unreadChatMessages}</span>
+                                        )}
                                     </NavLink>
                                 );
                             })}

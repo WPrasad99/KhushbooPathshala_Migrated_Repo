@@ -119,11 +119,16 @@ const AdminDashboard = () => {
                 }
             };
             const handleMessage = (data) => {
-                setUnreadMessages(prev => prev + 1);
+                const isOwn = (data?.senderId || data?.sender?.id) === user?.id;
+                if (isOwn) return;
+
+                if (activeTab !== 'messages') {
+                    setUnreadMessages(prev => prev + 1);
+                }
                 if (data && data.sender) {
                     setLiveNotification({
                         id: Date.now(),
-                        title: `New message from ${data.sender?.name || 'User'}`,
+                        title: `💬 New message from ${data.sender?.name || 'User'}`,
                         message: data.content || 'You received a new message.',
                         createdAt: new Date()
                     });
@@ -134,11 +139,13 @@ const AdminDashboard = () => {
             socket.on('notification', handleNotification);
             socket.on('new_announcement', handleNotification);
             socket.on('new_message_notification', handleMessage);
+            socket.on('message:new', handleMessage);
 
             return () => {
                 socket.off('notification', handleNotification);
                 socket.off('new_announcement', handleNotification);
                 socket.off('new_message_notification', handleMessage);
+                socket.off('message:new', handleMessage);
             };
         }
     }, [socket]);
@@ -248,9 +255,12 @@ const AdminDashboard = () => {
     const loadNotifications = async () => {
         try {
             const res = await api.get('/notifications');
-            setNotifications(res.data || []);
-            await api.put('/notifications/read');
-            setUnreadNotifications(0);
+            const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+            setNotifications(list);
+            const unreadChat = list.filter(n => !n.isRead && n.type === 'CHAT').length;
+            setUnreadMessages(unreadChat);
+            const otherUnread = list.filter(n => !n.isRead && n.type !== 'CHAT').length;
+            setUnreadNotifications(otherUnread);
         } catch (error) {
             console.error('Failed to load notifications', error);
         }
@@ -259,6 +269,8 @@ const AdminDashboard = () => {
     const handleToggleNotifications = async () => {
         if (!showNotifications) {
             await loadNotifications();
+            api.get('/notifications', { params: { action: 'read' } }).catch(() => {});
+            setUnreadNotifications(0);
         }
         setShowNotifications(state => !state);
     };
@@ -266,7 +278,7 @@ const AdminDashboard = () => {
     const handleDeleteNotification = async (event, id) => {
         event.stopPropagation();
         try {
-            await api.delete(`/notifications/${id}`);
+            await api.get('/notifications', { params: { action: 'delete', id } });
             setNotifications((current) => current.filter((item) => item.id !== id));
         } catch (error) {
             console.error('Failed to delete notification', error);
@@ -407,9 +419,16 @@ const AdminDashboard = () => {
                             </button>
                             <button
                                 className={`mentor-tab ${activeTab === 'messages' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('messages')}
+                                onClick={() => {
+                                    setActiveTab('messages');
+                                    setUnreadMessages(0);
+                                }}
+                                style={{ position: 'relative' }}
                             >
                                 <FiMessageCircle /> Messages
+                                {unreadMessages > 0 && (
+                                    <span className="nav-message-badge">{unreadMessages}</span>
+                                )}
                             </button>
                         </div>
                     </div>

@@ -39,3 +39,72 @@
 .spin-animation {
     animation: spin 1s linear infinite;
 }
+
+/* ── Realtime Unread Message Badge on Navbar ── */
+.nav-message-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 99px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.4);
+    line-height: 1;
+    z-index: 2;
+    animation: badgePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes badgePop {
+    from { transform: scale(0.4); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* ── Live Alert Toast Box ── */
+.live-notification-toast {
+    position: fixed;
+    top: 76px;
+    right: 20px;
+    background: var(--admin-surface, #ffffff);
+    color: var(--admin-text-primary, #0f172a);
+    border: 1px solid var(--admin-border-color, #e2e8f0);
+    border-left: 4px solid var(--admin-primary, #4f46e5);
+    border-radius: 10px;
+    padding: 14px 18px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    z-index: 999999;
+    max-width: 340px;
+    animation: slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.live-notification-toast h4 {
+    margin: 0 0 4px 0;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--admin-primary, #4f46e5);
+}
+
+.live-notification-toast p {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--admin-text-secondary, #475569);
+    line-height: 1.45;
+}
+
+@keyframes slideInToast {
+    from {
+        transform: translateY(-20px) scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}

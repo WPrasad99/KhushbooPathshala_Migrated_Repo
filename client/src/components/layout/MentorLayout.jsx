@@ -20,7 +20,7 @@ import {
 } from 'react-icons/fi';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../api';
+import api, { chatAPI } from '../../api';
 import ChatBot from '../ChatBot';
 import '../../pages/admin/AdminDashboard.css';
 import './MentorLayout.css';
@@ -43,11 +43,34 @@ const MentorLayout = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [theme, setTheme] = useState(localStorage.getItem('mentor-theme') || 'light');
     const [unreadNotifications, setUnreadNotifications] = useState(0);
+    const [unreadChatMessages, setUnreadChatMessages] = useState(0);
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [liveNotification, setLiveNotification] = useState(null);
 
     const isMessagesPage = location.pathname.includes('/messages') || location.pathname.includes('/chat/');
+
+    // Fetch initial unread chat count
+    useEffect(() => {
+        const fetchUnread = async () => {
+            try {
+                const res = await chatAPI.getUnreadCount();
+                const count = res?.data?.unreadCount ?? 0;
+                setUnreadChatMessages(count);
+            } catch {
+                // ignore
+            }
+        };
+        fetchUnread();
+    }, []);
+
+    // Clear unread messages when user visits the messages page
+    useEffect(() => {
+        if (isMessagesPage) {
+            chatAPI.markRead().catch(() => {});
+            setUnreadChatMessages(0);
+        }
+    }, [isMessagesPage]);
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
@@ -63,7 +86,7 @@ const MentorLayout = () => {
         navigate('/login');
     };
 
-    // Socket.io notification listener
+    // Socket.io notification & chat message listener
     useEffect(() => {
         if (!socket) return;
 
@@ -82,21 +105,43 @@ const MentorLayout = () => {
             }
         };
 
+        const handleChatMessage = (msg) => {
+            const isOwn = (msg?.senderId || msg?.sender?.id) === user?.id;
+            if (!isOwn && msg) {
+                if (!isMessagesPage) {
+                    setUnreadChatMessages(prev => prev + 1);
+                }
+                const senderName = msg.sender?.name || 'Contact';
+                setLiveNotification({
+                    id: Date.now(),
+                    title: `💬 New message from ${senderName}`,
+                    message: msg.content || 'Sent an attachment',
+                    createdAt: new Date()
+                });
+                setTimeout(() => setLiveNotification(null), 5000);
+            }
+        };
+
         socket.on('notification', handleNotification);
         socket.on('new_announcement', handleNotification);
+        socket.on('message:new', handleChatMessage);
 
         return () => {
             socket.off('notification', handleNotification);
             socket.off('new_announcement', handleNotification);
+            socket.off('message:new', handleChatMessage);
         };
-    }, [socket]);
+    }, [socket, user?.id, isMessagesPage]);
 
     const loadNotifications = async () => {
         try {
             const res = await api.get('/notifications');
-            setNotifications(res.data || []);
-            await api.put('/notifications/read');
-            setUnreadNotifications(0);
+            const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+            setNotifications(list);
+            const unreadChat = list.filter(n => !n.isRead && n.type === 'CHAT').length;
+            setUnreadChatMessages(unreadChat);
+            const otherUnread = list.filter(n => !n.isRead && n.type !== 'CHAT').length;
+            setUnreadNotifications(otherUnread);
         } catch (error) {
             console.error('Failed to load notifications', error);
         }
@@ -105,6 +150,8 @@ const MentorLayout = () => {
     const handleToggleNotifications = async () => {
         if (!showNotifications) {
             await loadNotifications();
+            api.get('/notifications', { params: { action: 'read' } }).catch(() => {});
+            setUnreadNotifications(0);
         }
         setShowNotifications(state => !state);
     };
@@ -112,7 +159,7 @@ const MentorLayout = () => {
     const handleDeleteNotification = async (event, id) => {
         event.stopPropagation();
         try {
-            await api.delete(`/notifications/${id}`);
+            await api.get('/notifications', { params: { action: 'delete', id } });
             setNotifications((current) => current.filter((item) => item.id !== id));
         } catch (error) {
             console.error('Failed to delete notification', error);
@@ -150,14 +197,19 @@ const MentorLayout = () => {
                         <div className="mentor-tabs">
                             {mentorNavItems.map((item) => {
                                 const Icon = item.icon;
+                                const isMessagesTab = item.label === 'Messages';
                                 return (
                                     <NavLink
                                         key={item.to}
                                         to={item.to}
                                         end={item.end}
                                         className={({ isActive }) => `mentor-tab ${isActive ? 'active' : ''}`}
+                                        style={{ position: 'relative' }}
                                     >
                                         <Icon /> {item.label}
+                                        {isMessagesTab && unreadChatMessages > 0 && (
+                                            <span className="nav-message-badge">{unreadChatMessages}</span>
+                                        )}
                                     </NavLink>
                                 );
                             })}
@@ -218,6 +270,7 @@ const MentorLayout = () => {
                                 <div className="mobile-menu-links">
                                     {mentorNavItems.map((item) => {
                                         const Icon = item.icon;
+                                        const isMessagesTab = item.label === 'Messages';
                                         return (
                                             <NavLink
                                                 key={item.to}
@@ -225,8 +278,12 @@ const MentorLayout = () => {
                                                 end={item.end}
                                                 className={({ isActive }) => `mobile-menu-link ${isActive ? 'active' : ''}`}
                                                 onClick={() => setIsMenuOpen(false)}
+                                                style={{ position: 'relative' }}
                                             >
                                                 <Icon /> <span>{item.label}</span>
+                                                {isMessagesTab && unreadChatMessages > 0 && (
+                                                    <span className="nav-message-badge" style={{ right: '14px', top: '12px' }}>{unreadChatMessages}</span>
+                                                )}
                                             </NavLink>
                                         );
                                     })}
