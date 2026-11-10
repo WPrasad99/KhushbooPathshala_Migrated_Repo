@@ -166,26 +166,35 @@ class StudentController extends ControllerBase {
     }
     $batchesRaw = $bQuery->execute()->fetchAllAssoc('id');
     $batches = [];
+    $allStudentMentors = [];
     foreach ($batchesRaw as $b) {
-      $mentorId = $this->database->select('kp_batch_mentors', 'bm')
+      $mentorIds = $this->database->select('kp_batch_mentors', 'bm')
         ->fields('bm', ['user_id'])
         ->condition('batch_id', $b->id)
         ->execute()
-        ->fetchField();
-      $mentor = null;
-      if ($mentorId) {
-        $mentor = $this->database->select('kp_users', 'u')
-          ->fields('u', ['id', 'name', 'email', 'avatar'])
-          ->condition('id', $mentorId)
+        ->fetchCol();
+
+      $batchMentors = [];
+      if (!empty($mentorIds)) {
+        $mentorUsers = $this->database->select('kp_users', 'u')
+          ->fields('u', ['id', 'name', 'email', 'avatar', 'phone', 'role', 'bio', 'skills'])
+          ->condition('id', $mentorIds, 'IN')
           ->execute()
-          ->fetchAssoc();
+          ->fetchAllAssoc('id');
+        foreach ($mentorUsers as $mu) {
+          $mArr = (array)$mu;
+          $batchMentors[] = $mArr;
+          $allStudentMentors[$mArr['id']] = $mArr;
+        }
       }
+
       $batches[] = [
         'id' => $b->id,
         'name' => $b->name,
         'code' => $b->code,
         'description' => $b->description,
-        'mentor' => $mentor,
+        'mentor' => !empty($batchMentors) ? $batchMentors[0] : null,
+        'mentors' => $batchMentors,
       ];
     }
 
@@ -251,6 +260,7 @@ class StudentController extends ControllerBase {
       'announcements' => $announcements,
       'upcomingAssignments' => $upcomingAssignments,
       'batches' => array_values($batches),
+      'mentors' => array_values($allStudentMentors),
       'recentActivities' => $recentActivities,
     ]);
   }
@@ -318,19 +328,20 @@ class StudentController extends ControllerBase {
 
     $list = [];
     foreach ($batches as $b) {
-      $mentorId = $this->database->select('kp_batch_mentors', 'bm')
+      $mentorIds = $this->database->select('kp_batch_mentors', 'bm')
         ->fields('bm', ['user_id'])
         ->condition('batch_id', $b->id)
         ->execute()
-        ->fetchField();
+        ->fetchCol();
 
-      $mentor = null;
-      if ($mentorId) {
-        $mentor = $this->database->select('kp_users', 'u')
-          ->fields('u', ['id', 'name', 'email', 'avatar'])
-          ->condition('id', $mentorId)
+      $batchMentors = [];
+      if (!empty($mentorIds)) {
+        $mentorUsers = $this->database->select('kp_users', 'u')
+          ->fields('u', ['id', 'name', 'email', 'avatar', 'phone', 'role', 'bio', 'skills'])
+          ->condition('id', $mentorIds, 'IN')
           ->execute()
-          ->fetchAssoc();
+          ->fetchAllAssoc('id');
+        $batchMentors = array_values(array_map(fn($mu) => (array)$mu, $mentorUsers));
       }
 
       $list[] = [
@@ -340,7 +351,8 @@ class StudentController extends ControllerBase {
         'description' => $b->description,
         'startDate' => $b->start_date,
         'endDate' => $b->end_date,
-        'mentor' => $mentor,
+        'mentor' => !empty($batchMentors) ? $batchMentors[0] : null,
+        'mentors' => $batchMentors,
       ];
     }
 

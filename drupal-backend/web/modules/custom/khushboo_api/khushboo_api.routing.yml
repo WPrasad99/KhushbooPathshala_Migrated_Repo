@@ -506,6 +506,22 @@ khushboo_api.chat_sync:
   requirements:
     _access: 'TRUE'
 
+khushboo_api.chat_unread_count:
+  path: '/api/chat/unread-count'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::getUnreadCount'
+  methods: [GET, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
+khushboo_api.chat_read_post:
+  path: '/api/chat/read'
+  defaults:
+    _controller: '\Drupal\khushboo_api\Controller\ChatController::markRead'
+  methods: [POST, OPTIONS]
+  requirements:
+    _access: 'TRUE'
+
 # ── AI Chatbot & Roadmaps ─────────────
 khushboo_api.chatbot_ask:
   path: '/api/chatbot/ask'

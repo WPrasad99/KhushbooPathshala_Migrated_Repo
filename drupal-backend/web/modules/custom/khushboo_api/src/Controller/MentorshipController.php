@@ -37,6 +37,7 @@ class MentorshipController extends ControllerBase {
     if (!$user) return $this->jwt->unauthorizedResponse();
 
     $mentor = null;
+    $mentors = [];
     $assignedAt = null;
     $batchInfo = null;
 
@@ -54,60 +55,84 @@ class MentorshipController extends ControllerBase {
         ->condition('id', $relation['mentor_id'])
         ->execute()
         ->fetchAssoc();
+      if ($mentor) {
+        $mentors[] = $mentor;
+      }
       $assignedAt = date('c', $relation['assigned_at']);
     }
 
-    // 2. If no direct mentor, dynamically resolve mentor via batch enrollment
-    if (!$mentor) {
-      $batchIds = $this->database->select('kp_batch_students', 'bs')
-        ->fields('bs', ['batch_id'])
-        ->condition('user_id', $user['id'])
+    // 2. Resolve all mentors via enrolled batches
+    $batchIds = $this->database->select('kp_batch_students', 'bs')
+      ->fields('bs', ['batch_id'])
+      ->condition('user_id', $user['id'])
+      ->execute()
+      ->fetchCol();
+
+    if (!empty($batchIds)) {
+      $mentorAssignments = $this->database->select('kp_batch_mentors', 'bm')
+        ->fields('bm', ['user_id', 'batch_id', 'assigned_at'])
+        ->condition('batch_id', $batchIds, 'IN')
         ->execute()
-        ->fetchCol();
+        ->fetchAll();
 
-      if (!empty($batchIds)) {
-        $mentorAssignment = $this->database->select('kp_batch_mentors', 'bm')
-          ->fields('bm', ['user_id', 'batch_id', 'assigned_at'])
-          ->condition('batch_id', $batchIds, 'IN')
-          ->execute()
-          ->fetchAssoc();
-
-        if ($mentorAssignment) {
-          $mentor = $this->database->select('kp_users', 'u')
-            ->fields('u', ['id', 'name', 'email', 'avatar', 'phone', 'skills', 'bio'])
-            ->condition('id', $mentorAssignment['user_id'])
-            ->execute()
-            ->fetchAssoc();
-
-          $batchRecord = $this->database->select('kp_batches', 'b')
-            ->fields('b', ['id', 'name', 'code'])
-            ->condition('id', $mentorAssignment['batch_id'])
-            ->execute()
-            ->fetchAssoc();
-
-          $batchInfo = $batchRecord ?: null;
-          $assignedAt = date('c', $mentorAssignment['assigned_at'] ?: time());
+      $foundMentorIds = [];
+      foreach ($mentorAssignments as $ma) {
+        $foundMentorIds[] = $ma->user_id;
+        if (!$assignedAt && $ma->assigned_at) {
+          $assignedAt = date('c', $ma->assigned_at);
         }
       }
+      $foundMentorIds = array_unique($foundMentorIds);
+
+      if (!empty($foundMentorIds)) {
+        $batchMentorUsers = $this->database->select('kp_users', 'u')
+          ->fields('u', ['id', 'name', 'email', 'avatar', 'phone', 'skills', 'bio'])
+          ->condition('id', $foundMentorIds, 'IN')
+          ->execute()
+          ->fetchAllAssoc('id');
+
+        foreach ($batchMentorUsers as $bmu) {
+          $mArr = (array)$bmu;
+          if (!in_array($mArr['id'], array_column($mentors, 'id'))) {
+            $mentors[] = $mArr;
+          }
+        }
+
+        if (!$mentor && !empty($mentors)) {
+          $mentor = $mentors[0];
+        }
+      }
+
+      $batchRecord = $this->database->select('kp_batches', 'b')
+        ->fields('b', ['id', 'name', 'code'])
+        ->condition('id', $batchIds[0])
+        ->execute()
+        ->fetchAssoc();
+      $batchInfo = $batchRecord ?: null;
     }
 
     // Fallback if still null but there are mentors in the system
-    if (!$mentor) {
-      $fallbackMentor = $this->database->select('kp_users', 'u')
+    if (empty($mentors)) {
+      $fallbackMentors = $this->database->select('kp_users', 'u')
         ->fields('u', ['id', 'name', 'email', 'avatar', 'phone', 'skills', 'bio'])
         ->condition('role', 'MENTOR')
-        ->range(0, 1)
+        ->range(0, 3)
         ->execute()
-        ->fetchAssoc();
-      if ($fallbackMentor) {
-        $mentor = $fallbackMentor;
+        ->fetchAll();
+
+      foreach ($fallbackMentors as $fm) {
+        $mentors[] = (array)$fm;
+      }
+      if (!empty($mentors)) {
+        $mentor = $mentors[0];
         $assignedAt = date('c', time() - 86400 * 7);
       }
     }
 
     return $this->jwt->successResponse([
       'mentor' => $mentor,
-      'status' => $mentor ? 'ACTIVE' : 'NONE',
+      'mentors' => $mentors,
+      'status' => !empty($mentors) ? 'ACTIVE' : 'NONE',
       'batch' => $batchInfo,
       'assignedAt' => $assignedAt,
     ]);
