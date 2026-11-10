@@ -1,7 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiSend, FiSearch, FiMoreVertical, FiUsers, FiUser, FiMessageCircle, FiCheck, FiCheckCircle, FiPlus, FiDownload, FiFile, FiImage, FiArrowLeft } from 'react-icons/fi';
+import {
+    FiSend,
+    FiSearch,
+    FiMoreVertical,
+    FiUsers,
+    FiUser,
+    FiMessageCircle,
+    FiCheck,
+    FiPlus,
+    FiDownload,
+    FiFile,
+    FiImage,
+    FiArrowLeft,
+    FiClock,
+    FiPhone,
+    FiVideo,
+    FiInfo,
+    FiX
+} from 'react-icons/fi';
 import { chatAPI, API_BASE } from '../api';
 import { socket } from '../api/socket';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +31,9 @@ import './MessagingPage.css';
 
 const MessagingPage = ({ initialChatUser, onClearInitialChatUser }) => {
     const { user: currentUser } = useAuth();
+    const navigate = useNavigate();
+    const { userId } = useParams();
+
     const [conversations, setConversations] = useState([]);
     const [contacts, setContacts] = useState([]);
     const [selectedConversation, setSelectedConversation] = useState(null);
@@ -21,487 +42,689 @@ const MessagingPage = ({ initialChatUser, onClearInitialChatUser }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showNewChatModal, setShowNewChatModal] = useState(false);
     const [showGroupInfo, setShowGroupInfo] = useState(false);
     const [showUserInfo, setShowUserInfo] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [uploading, setUploading] = useState(false);
-    const [usersTyping, setUsersTyping] = useState([]);
     const [showMobileSidebar, setShowMobileSidebar] = useState(true);
+
     const messagesEndRef = useRef(null);
-    const typingTimeoutRef = useRef(null);
+    const inputRef = useRef(null);
 
     const currentUserId = currentUser?.id;
     const currentUserName = currentUser?.name;
 
-    const { userId } = useParams();
+    // Helper: extract the other user in a direct message
+    const getOtherUser = (conv) => {
+        if (!conv) return null;
+        if (conv.members && Array.isArray(conv.members)) {
+            const other = conv.members.find(m => (m.userId || m.user?.id) != currentUserId);
+            if (other?.user) return other.user;
+        }
+        return { name: conv.name || 'Chat', avatar: null, role: null };
+    };
 
-    // Handle initial chat user (from Mentor Dashboard or URL)
+    // Initial load: Fetch conversations and contacts
     useEffect(() => {
-        const initDirectMessage = async () => {
-            const targetId = userId || initialChatUser?.id;
-            if (targetId) {
-                try {
-                    // Try to find existing or create new DM
-                    const response = await chatAPI.createDirectMessage(targetId);
-                    if (response.data) {
-                        const group = response.data;
-                        // Refresh lists
-                        await fetchData();
-                        setSelectedConversation(group);
-                        setShowMobileSidebar(false); // Open chat view
+        let isMounted = true;
+        const loadAll = async () => {
+            try {
+                setLoading(true);
+                const [groupsRes, contactsRes] = await Promise.all([
+                    chatAPI.getGroups().catch(() => ({ data: [] })),
+                    chatAPI.getContacts().catch(() => ({ data: [] }))
+                ]);
 
-                        // Clear the initial user in parent to prevent re-triggering
-                        if (onClearInitialChatUser && initialChatUser) {
-                            onClearInitialChatUser();
-                        }
+                if (isMounted) {
+                    const groupList = Array.isArray(groupsRes?.data) ? groupsRes.data : [];
+                    const contactList = Array.isArray(contactsRes?.data) ? contactsRes.data : [];
+                    setConversations(groupList);
+                    setContacts(contactList);
+
+                    // If userId param is present, initiate or select that DM
+                    const targetId = userId || initialChatUser?.id;
+                    if (targetId) {
+                        openOrCreateDirectChat(targetId, groupList);
+                    } else if (groupList.length > 0 && !selectedConversation && window.innerWidth > 768) {
+                        // On desktop, auto-select the first active conversation
+                        setSelectedConversation(groupList[0]);
                     }
-                } catch (error) {
-                    console.error('Failed to initialize chat:', error);
                 }
+            } catch (err) {
+                console.error('Failed to load messaging data:', err);
+            } finally {
+                if (isMounted) setLoading(false);
             }
         };
 
-        if (userId || initialChatUser) {
-            initDirectMessage();
-        }
-    }, [userId, initialChatUser]);
-
-    // Fetch conversations and contacts
-    useEffect(() => {
-        fetchData(); // Keeping original fetch logic
-
-        // Socket listeners
-        socket.on('message:new', handleNewMessage);
-        socket.on('group:created', handleGroupCreated);
+        loadAll();
 
         return () => {
-            socket.off('message:new', handleNewMessage);
-            socket.off('group:created', handleGroupCreated);
+            isMounted = false;
         };
     }, []);
 
-    // Fetch messages when conversation changes
+    // Handle URL param changes (e.g. clicking "Message Mentor" multiple times or for different users)
     useEffect(() => {
-        if (selectedConversation && !selectedConversation.isPlaceholder) {
-            fetchMessages(selectedConversation.id);
-        } else {
-            setMessages([]);
+        const targetId = userId || initialChatUser?.id;
+        if (targetId && conversations.length > 0) {
+            openOrCreateDirectChat(targetId, conversations);
         }
-    }, [selectedConversation]);
+    }, [userId, initialChatUser]);
 
-    // Auto-scroll to bottom
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+    // Fast direct chat resolver
+    const openOrCreateDirectChat = async (targetId, currentList) => {
+        // Check if DM with targetId already exists in currentList
+        const existing = (currentList || conversations).find(c => {
+            if (c.groupType !== 'direct') return false;
+            return c.members?.some(m => (m.userId || m.user?.id) === targetId);
+        });
 
-    const fetchData = async () => {
+        if (existing) {
+            setSelectedConversation(existing);
+            setShowMobileSidebar(false);
+            fetchMessages(existing.id);
+            if (onClearInitialChatUser) onClearInitialChatUser();
+            return;
+        }
+
+        // Call backend to create or resolve existing DM
         try {
-            setLoading(true);
-            const [groupsRes, contactsRes] = await Promise.all([
-                chatAPI.getGroups().catch(err => ({ data: [] })),
-                chatAPI.getContacts().catch(err => ({ data: [] }))
-            ]);
-            setConversations(Array.isArray(groupsRes?.data) ? groupsRes.data : []);
-            setContacts(Array.isArray(contactsRes?.data) ? contactsRes.data : []);
-        } catch (error) {
-            console.error('Failed to fetch data:', error);
-            setConversations([]);
-            setContacts([]);
-        } finally {
-            setLoading(false);
+            const res = await chatAPI.createDirectMessage(targetId);
+            const group = res?.data;
+            if (group && group.id) {
+                setConversations(prev => {
+                    const withoutDup = prev.filter(c => c.id !== group.id);
+                    return [group, ...withoutDup];
+                });
+                setSelectedConversation(group);
+                setShowMobileSidebar(false);
+                fetchMessages(group.id);
+                if (onClearInitialChatUser) onClearInitialChatUser();
+            }
+        } catch (err) {
+            console.error('Failed to open direct chat:', err);
         }
     };
 
-    const fetchConversations = async () => {
-        try {
-            const response = await chatAPI.getGroups();
-            if (Array.isArray(response?.data)) {
-                setConversations(response.data);
+    // Socket.io & Polling fallback for real-time messaging
+    useEffect(() => {
+        const handleIncoming = (data) => {
+            if (selectedConversation && (data.groupId === selectedConversation.id || data.group_id === selectedConversation.id)) {
+                setMessages(prev => {
+                    if (prev.some(m => m.id === data.id)) return prev;
+                    return [...prev, data];
+                });
             }
-        } catch (error) {
-            console.error('Failed to fetch conversations:', error);
+            refreshConversations();
+        };
+
+        socket.on('message:new', handleIncoming);
+        socket.on('group:created', refreshConversations);
+
+        // Fallback polling every 4 seconds to sync messages and last activity smoothly
+        const pollInterval = setInterval(() => {
+            if (selectedConversation?.id) {
+                syncLatestMessages(selectedConversation.id);
+            }
+        }, 4000);
+
+        return () => {
+            socket.off('message:new', handleIncoming);
+            socket.off('group:created', refreshConversations);
+            clearInterval(pollInterval);
+        };
+    }, [selectedConversation?.id]);
+
+    // Fetch messages whenever selectedConversation changes
+    useEffect(() => {
+        if (selectedConversation?.id && !selectedConversation.isPlaceholder) {
+            fetchMessages(selectedConversation.id);
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 100);
+        } else {
+            setMessages([]);
+        }
+    }, [selectedConversation?.id]);
+
+    // Auto-scroll to bottom
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    const refreshConversations = async () => {
+        try {
+            const res = await chatAPI.getGroups();
+            if (Array.isArray(res?.data)) {
+                setConversations(res.data);
+            }
+        } catch (err) {
+            console.error('Failed to refresh conversations:', err);
         }
     };
 
     const fetchMessages = async (groupId) => {
         try {
-            const response = await chatAPI.getMessages(groupId);
-            setMessages(response.data);
-        } catch (error) {
-            console.error('Failed to fetch messages:', error);
+            const res = await chatAPI.getMessages(groupId);
+            const list = Array.isArray(res?.data) ? res.data : [];
+            setMessages(list);
+        } catch (err) {
+            console.error('Failed to fetch messages:', err);
+            setMessages([]);
         }
     };
 
-    const handleNewMessage = (data) => {
-        if (selectedConversation && data.groupId === selectedConversation.id) {
-            setMessages(prev => [...prev, data]);
+    const syncLatestMessages = async (groupId) => {
+        try {
+            const res = await chatAPI.getMessages(groupId);
+            const list = Array.isArray(res?.data) ? res.data : [];
+            setMessages(prev => {
+                if (list.length !== prev.length || (list.length > 0 && list[list.length - 1]?.id !== prev[prev.length - 1]?.id)) {
+                    return list;
+                }
+                return prev;
+            });
+        } catch {
+            // Silently ignore sync errors
         }
-        fetchConversations();
     };
 
-    const handleGroupCreated = (data) => {
-        fetchConversations();
-    };
-
-
-
-    // ... (logic)
-
-    const handleConversationClick = async (conv) => {
+    const handleSelectConversation = (conv) => {
         setShowGroupInfo(false);
         setShowUserInfo(false);
         setSelectedConversation(conv);
-        setShowMobileSidebar(false); // Switch to chat view on mobile
+        setShowMobileSidebar(false);
         fetchMessages(conv.id);
     };
 
-    // ... sendMessage ... (keep existing)
-
     const sendMessage = async (e) => {
-        e.preventDefault();
-        if ((!newMessage.trim() && selectedFiles.length === 0) || !selectedConversation) return;
+        e?.preventDefault();
+        const text = newMessage.trim();
+        if ((!text && selectedFiles.length === 0) || !selectedConversation) return;
 
         try {
             setUploading(true);
             let attachments = null;
 
-            // ... upload logic ... (keep existing)
             if (selectedFiles.length > 0) {
                 const formData = new FormData();
-                selectedFiles.forEach(file => {
-                    formData.append('files', file);
-                });
+                selectedFiles.forEach(file => formData.append('files', file));
                 const uploadResponse = await chatAPI.uploadFiles(formData);
-                attachments = uploadResponse.data.files;
+                attachments = uploadResponse?.data?.files || uploadResponse?.data;
             }
 
-            const response = await chatAPI.sendMessage(
-                selectedConversation.id,
-                newMessage.trim(),
-                attachments
-            );
+            const res = await chatAPI.sendMessage(selectedConversation.id, text, attachments);
+            const sentMsg = res?.data;
 
-            setMessages(prev => [...prev, response.data]);
+            if (sentMsg) {
+                setMessages(prev => [...prev, sentMsg]);
+
+                // Update conversation's lastMessage in list
+                setConversations(prev => {
+                    return prev.map(c => {
+                        if (c.id === selectedConversation.id) {
+                            return { ...c, lastMessage: sentMsg };
+                        }
+                        return c;
+                    });
+                });
+
+                socket.emit('message:send', {
+                    groupId: selectedConversation.id,
+                    message: sentMsg
+                });
+            }
+
             setNewMessage('');
             setSelectedFiles([]);
-
-            socket.emit('message:send', {
-                groupId: selectedConversation.id,
-                message: response.data
-            });
-        } catch (error) {
-            console.error('Failed to send message:', error);
-            alert('Failed to send message. Please try again.');
+        } catch (err) {
+            console.error('Failed to send message:', err);
+            alert('Failed to deliver message. Please retry.');
         } finally {
             setUploading(false);
         }
     };
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
+    // Format WhatsApp-style timestamps
+    const formatTimestamp = (dateStr) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const now = new Date();
 
-    const formatTime = (timestamp) => {
-        const date = new Date(timestamp);
+        const isToday = date.toDateString() === now.toDateString();
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const isYesterday = date.toDateString() === yesterday.toDateString();
+
         const hours = date.getHours().toString().padStart(2, '0');
         const minutes = date.getMinutes().toString().padStart(2, '0');
-        return `${hours}:${minutes}`;
+        const time = `${hours}:${minutes}`;
+
+        if (isToday) return time;
+        if (isYesterday) return 'Yesterday';
+
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        return `${day}/${month}`;
     };
 
-    // ... helpers ...
-
-    const getOtherUser = (conversation) => {
-        if (!conversation?.members || !Array.isArray(conversation.members)) return null;
-
-        if (conversation.isPlaceholder) {
-            return conversation.members[0]?.user;
-        }
-        if (conversation.groupType === 'direct') {
-            // Use loose comparison for ID mismatch safety
-            const other = conversation.members.find(m => m.userId != currentUserId);
-            return other?.user;
-        }
-        return null;
+    const formatBubbleTime = (dateStr) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        return `${displayHours}:${minutes} ${ampm}`;
     };
 
-    // Merge conversations and contacts
-    const getDisplayList = () => {
+    // Filter conversations: WhatsApp rule -> only show active chats with messages or selected
+    const displayConversations = useMemo(() => {
         if (!Array.isArray(conversations)) return [];
 
-        const displayList = [...conversations];
+        let list = conversations.filter(c => {
+            const hasMessages = Boolean(c.lastMessage && (c.lastMessage.content || c.lastMessage.id));
+            const isCurrentlySelected = selectedConversation && selectedConversation.id === c.id;
+            const isGroup = c.groupType === 'group' || c.groupType === 'batch';
+            return hasMessages || isCurrentlySelected || isGroup;
+        });
 
-        // Filter by search
-        if (searchQuery) {
-            return displayList.filter(c => {
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase().trim();
+            list = conversations.filter(c => {
                 const isDirect = c.groupType === 'direct';
                 const name = isDirect ? getOtherUser(c)?.name : c.name;
-                return name?.toLowerCase().includes(searchQuery.toLowerCase());
+                return name?.toLowerCase().includes(q);
             });
         }
 
-        return displayList;
-    };
+        return list;
+    }, [conversations, searchQuery, selectedConversation?.id]);
 
-    const handleLeaveGroup = (groupId) => {
-        setConversations(prev => prev.filter(c => c.id !== groupId));
-        setSelectedConversation(null);
-        setShowGroupInfo(false);
+    // Handle starting a new chat with a contact from the modal
+    const handleStartChatWithUser = async (targetUser) => {
+        setShowNewChatModal(false);
+        await openOrCreateDirectChat(targetUser.id, conversations);
     };
-
-    const filteredConversations = getDisplayList();
 
     if (loading) {
         return (
-            <div className="messaging-page">
-                <div className="loading-spinner"></div>
+            <div className="wa-messaging-shell">
+                <div className="wa-loading-center">
+                    <div className="wa-spinner" />
+                    <span>Connecting to secure chat...</span>
+                </div>
             </div>
         );
     }
 
+    const isDirect = selectedConversation?.groupType === 'direct';
+    const activeOtherUser = isDirect ? getOtherUser(selectedConversation) : null;
+    const conversationTitle = isDirect ? (activeOtherUser?.name || 'Direct Message') : (selectedConversation?.name || 'Group Chat');
+
     return (
-        <div className={`messaging-page ${showMobileSidebar ? 'show-sidebar' : ''}`}>
-            {/* Left Sidebar - Conversations */}
-            <div className="conversations-sidebar">
-                <div className="sidebar-header">
-                    <h2>Messages</h2>
-                    <button
-                        className="create-group-btn"
-                        onClick={() => setShowCreateModal(true)}
-                        title="Create New Group"
-                    >
-                        <FiPlus /> Create Group
-                    </button>
+        <div className={`wa-messaging-shell ${showMobileSidebar ? 'show-sidebar' : 'show-chat'}`}>
+            {/* ── LEFT SIDEBAR: WhatsApp-style Chats List ── */}
+            <aside className="wa-sidebar">
+                {/* Top Profile / Action Bar */}
+                <div className="wa-sidebar-top">
+                    <div className="wa-sidebar-user">
+                        <img
+                            src={currentUser?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUserName || 'User'}`}
+                            alt={currentUserName}
+                            className="wa-user-avatar"
+                        />
+                        <span className="wa-user-title">Chats</span>
+                    </div>
+
+                    <div className="wa-sidebar-actions">
+                        <button
+                            type="button"
+                            className="wa-icon-action-btn"
+                            onClick={() => setShowNewChatModal(true)}
+                            title="New Conversation"
+                        >
+                            <FiPlus size={18} />
+                        </button>
+                        <button
+                            type="button"
+                            className="wa-icon-action-btn"
+                            onClick={() => setShowCreateModal(true)}
+                            title="Create Group"
+                        >
+                            <FiUsers size={17} />
+                        </button>
+                    </div>
                 </div>
 
-                <div className="search-box">
-                    <FiSearch />
-                    <input
-                        type="text"
-                        placeholder="Search groups..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+                {/* Search Bar */}
+                <div className="wa-search-bar">
+                    <div className="wa-search-input-wrap">
+                        <FiSearch className="wa-search-icon" size={15} />
+                        <input
+                            type="text"
+                            placeholder="Search or start new chat"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                className="wa-search-clear"
+                                onClick={() => setSearchQuery('')}
+                            >
+                                <FiX size={14} />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                <div className="conversations-list">
-                    <AnimatePresence>
-                        {filteredConversations.map(conv => {
-                            const lastMessage = conv.messages?.[0];
-                            const isDirect = conv.groupType === 'direct';
-                            const otherUser = isDirect ? getOtherUser(conv) : null;
-                            const displayName = isDirect ? otherUser?.name || 'Unknown User' : conv.name;
+                {/* Conversation List */}
+                <div className="wa-chat-list">
+                    {displayConversations.length === 0 ? (
+                        <div className="wa-no-chats-hint">
+                            <FiMessageCircle size={32} />
+                            <p>No recent conversations</p>
+                            <button
+                                type="button"
+                                className="wa-btn-start-chat"
+                                onClick={() => setShowNewChatModal(true)}
+                            >
+                                Start a chat
+                            </button>
+                        </div>
+                    ) : (
+                        displayConversations.map(conv => {
+                            const isDirectChat = conv.groupType === 'direct';
+                            const other = isDirectChat ? getOtherUser(conv) : null;
+                            const displayName = isDirectChat ? (other?.name || 'User') : conv.name;
+                            const isSelected = selectedConversation?.id === conv.id;
+                            const lastMsg = conv.lastMessage;
+                            const isLastMsgOwn = lastMsg && (lastMsg.senderId || lastMsg.sender?.id) === currentUserId;
 
                             return (
-                                <motion.div
+                                <div
                                     key={conv.id}
-                                    className={`conversation-item ${selectedConversation?.id === conv.id ? 'active' : ''}`}
-                                    onClick={() => handleConversationClick(conv)}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
+                                    className={`wa-chat-item ${isSelected ? 'active' : ''}`}
+                                    onClick={() => handleSelectConversation(conv)}
                                 >
-                                    <div className="conversation-avatar">
-                                        {isDirect ? (
-                                            <div className="avatar user-avatar"><FiUser /></div>
+                                    <div className="wa-chat-avatar-wrap">
+                                        {isDirectChat ? (
+                                            <img
+                                                src={other?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`}
+                                                alt={displayName}
+                                                className="wa-chat-avatar"
+                                            />
                                         ) : (
-                                            <div className="avatar group-avatar"><FiUsers /></div>
+                                            <div className="wa-chat-group-avatar">
+                                                <FiUsers size={18} />
+                                            </div>
                                         )}
                                     </div>
 
-                                    <div className="conversation-info">
-                                        <div className="conversation-top">
-                                            <h4>{displayName}</h4>
-                                            {lastMessage && (
-                                                <span className="conversation-time">
-                                                    {formatTime(lastMessage.createdAt)}
+                                    <div className="wa-chat-content">
+                                        <div className="wa-chat-meta-top">
+                                            <span className="wa-chat-title">{displayName}</span>
+                                            {lastMsg?.createdAt && (
+                                                <span className="wa-chat-timestamp">
+                                                    {formatTimestamp(lastMsg.createdAt)}
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="conversation-bottom">
-                                            <p className="last-message">
-                                                {lastMessage?.content || 'No messages yet'}
+
+                                        <div className="wa-chat-meta-bottom">
+                                            <p className="wa-chat-preview">
+                                                {isLastMsgOwn && <FiCheck className="wa-check-icon" size={13} />}
+                                                <span>{lastMsg?.content || 'Tap to chat'}</span>
                                             </p>
                                         </div>
                                     </div>
-                                </motion.div>
+                                </div>
                             );
-                        })}
-                    </AnimatePresence>
+                        })
+                    )}
                 </div>
-            </div>
+            </aside>
 
-            {/* Center - Messages View */}
-            <div className="messages-view">
+            {/* ── RIGHT MAIN VIEW: WhatsApp-style Active Chat ── */}
+            <main className="wa-main-chat">
                 {selectedConversation ? (
-                    <>
-                        <div className="messages-header">
+                    <div className="wa-conversation-container">
+                        {/* Chat Top Header */}
+                        <header className="wa-chat-header">
                             <button
-                                className="mobile-back-btn"
+                                type="button"
+                                className="wa-mobile-back-btn"
                                 onClick={() => setShowMobileSidebar(true)}
-                                title="Back to conversations"
+                                title="Back to Chats"
                             >
-                                <FiArrowLeft />
+                                <FiArrowLeft size={18} />
                             </button>
+
                             <div
-                                className="header-info"
+                                className="wa-header-contact-info"
                                 onClick={() => {
-                                    if (selectedConversation.groupType === 'direct') setShowUserInfo(true);
+                                    if (isDirect) setShowUserInfo(true);
                                     else setShowGroupInfo(true);
                                 }}
-                                style={{ cursor: 'pointer' }}
                             >
-                                <div className="conversation-avatar">
-                                    {selectedConversation.groupType === 'direct' ? (
-                                        <div className="avatar user-avatar"><FiUser /></div>
+                                <div className="wa-header-avatar-wrap">
+                                    {isDirect ? (
+                                        <img
+                                            src={activeOtherUser?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conversationTitle}`}
+                                            alt={conversationTitle}
+                                            className="wa-header-avatar"
+                                        />
                                     ) : (
-                                        <div className="avatar group-avatar"><FiUsers /></div>
+                                        <div className="wa-chat-group-avatar header">
+                                            <FiUsers size={18} />
+                                        </div>
                                     )}
                                 </div>
-                                <div>
-                                    <h3>{selectedConversation.groupType === 'direct' ? getOtherUser(selectedConversation)?.name || 'Unknown User' : selectedConversation.name}</h3>
-                                    {selectedConversation.groupType !== 'direct' && (
-                                        <p className="members-count">
-                                            {selectedConversation.members.length} members
-                                        </p>
-                                    )}
+                                <div className="wa-header-text">
+                                    <h3 className="wa-header-title">{conversationTitle}</h3>
+                                    <span className="wa-header-status">
+                                        {isDirect
+                                            ? (activeOtherUser?.role ? `${activeOtherUser.role.toLowerCase()} • active now` : 'active now')
+                                            : `${selectedConversation.members?.length || 0} members`}
+                                    </span>
                                 </div>
                             </div>
-                            <button className="more-btn" onClick={() => {
-                                if (selectedConversation.groupType === 'direct') setShowUserInfo(true);
-                                else setShowGroupInfo(true);
-                            }}>
-                                <FiMoreVertical />
-                            </button>
-                        </div>
 
-                        <div className="messages-container">
+                            <div className="wa-header-actions">
+                                <button
+                                    type="button"
+                                    className="wa-header-btn"
+                                    onClick={() => {
+                                        if (isDirect) setShowUserInfo(true);
+                                        else setShowGroupInfo(true);
+                                    }}
+                                    title="Details & Info"
+                                >
+                                    <FiInfo size={18} />
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* Messages Stream Container */}
+                        <div className="wa-messages-stream">
+                            <div className="wa-date-separator">
+                                <span>Today</span>
+                            </div>
+
                             {messages.map((msg, index) => {
-                                const isOwn = msg.senderId === currentUserId;
+                                const isOwn = (msg.senderId || msg.sender?.id) === currentUserId;
+                                const senderName = msg.sender?.name || 'Member';
 
                                 return (
-                                    <React.Fragment key={msg.id}>
-                                        <motion.div
-                                            className={`message ${isOwn ? 'own' : 'other'}`}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                        >
-                                            {!isOwn && selectedConversation.groupType !== 'direct' && (
-                                                <span className="message-sender">{msg.sender.name}</span>
+                                    <div
+                                        key={msg.id || index}
+                                        className={`wa-message-row ${isOwn ? 'is-own' : 'is-other'}`}
+                                    >
+                                        <div className="wa-message-bubble">
+                                            {!isOwn && !isDirect && (
+                                                <span className="wa-sender-label">{senderName}</span>
                                             )}
-                                            <div className="message-bubble">
-                                                {msg.content && <p>{msg.content}</p>}
 
-                                                {/* Render file attachments WhatsApp Style */}
-                                                {msg.attachments && msg.attachments.length > 0 && (
-                                                    <div className="message-attachments">
-                                                        {msg.attachments.map((file, idx) => (
-                                                            <div key={idx} className="attachment-card">
-                                                                {file.type === 'image' || (file.url && file.url.match(/\.(jpeg|jpg|gif|png)$/) != null) ? (
-                                                                    <div
-                                                                        className="attachment-image-container"
-                                                                        onClick={() => window.open(`${API_BASE}${file.url}`, '_blank')}
-                                                                    >
-                                                                        <img
-                                                                            src={`${API_BASE}${file.url}`}
-                                                                            alt={file.name}
-                                                                            className="attachment-image-preview"
-                                                                        />
-                                                                    </div>
-                                                                ) : (
-                                                                    <a
-                                                                        href={`${API_BASE}${file.url}`}
-                                                                        download={file.name}
-                                                                        className="attachment-file-card"
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                    >
-                                                                        <div className="file-icon-wrapper">
-                                                                            <FiFile className="file-icon" />
-                                                                        </div>
-                                                                        <div className="file-info">
-                                                                            <span className="file-name">{file.name}</span>
-                                                                            <span className="file-type">{file.name ? file.name.split('.').pop().toUpperCase() : 'FILE'}</span>
-                                                                        </div>
-                                                                        <FiDownload className="download-icon" />
-                                                                    </a>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
+                                            {msg.content && (
+                                                <p className="wa-message-text">{msg.content}</p>
+                                            )}
 
-                                                <div className="message-meta">
-                                                    <span className="message-time">{formatTime(msg.createdAt)}</span>
-                                                    {isOwn && <FiCheck className="message-status" />}
+                                            {/* Attachments */}
+                                            {msg.attachments && msg.attachments.length > 0 && (
+                                                <div className="wa-bubble-attachments">
+                                                    {msg.attachments.map((file, idx) => (
+                                                        <div key={idx} className="wa-attachment-item">
+                                                            {file.type === 'image' || (file.url && file.url.match(/\.(jpeg|jpg|gif|png)$/i) != null) ? (
+                                                                <img
+                                                                    src={`${API_BASE}${file.url}`}
+                                                                    alt={file.name || 'Image'}
+                                                                    className="wa-attachment-img"
+                                                                    onClick={() => window.open(`${API_BASE}${file.url}`, '_blank')}
+                                                                />
+                                                            ) : (
+                                                                <a
+                                                                    href={`${API_BASE}${file.url}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="wa-file-pill"
+                                                                >
+                                                                    <FiFile size={16} />
+                                                                    <span className="wa-file-name">{file.name || 'Document'}</span>
+                                                                    <FiDownload size={14} />
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    ))}
                                                 </div>
+                                            )}
+
+                                            <div className="wa-bubble-meta">
+                                                <span className="wa-bubble-time">
+                                                    {formatBubbleTime(msg.createdAt)}
+                                                </span>
+                                                {isOwn && (
+                                                    <span className="wa-check-ticks">✓✓</span>
+                                                )}
                                             </div>
-                                        </motion.div>
-                                    </React.Fragment>
+                                        </div>
+                                    </div>
                                 );
                             })}
                             <div ref={messagesEndRef} />
                         </div>
 
-                        <form className="message-input-container" onSubmit={sendMessage}>
+                        {/* WhatsApp-Style Pinned Bottom Input Bar */}
+                        <form className="wa-input-dock" onSubmit={sendMessage}>
                             <FileUpload
                                 onFilesSelected={setSelectedFiles}
                                 disabled={uploading}
                             />
-                            <input
-                                type="text"
-                                placeholder="Type a message..."
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                disabled={uploading}
-                            />
+
+                            <div className="wa-input-wrapper">
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    placeholder="Type a message..."
+                                    value={newMessage}
+                                    onChange={(e) => setNewMessage(e.target.value)}
+                                    disabled={uploading}
+                                    autoComplete="off"
+                                />
+                            </div>
+
                             <button
                                 type="submit"
+                                className="wa-send-btn"
                                 disabled={uploading || (!newMessage.trim() && selectedFiles.length === 0)}
+                                title="Send message"
                             >
-                                <FiSend />
+                                <FiSend size={16} />
                             </button>
                         </form>
-                    </>
+                    </div>
                 ) : (
-                    <div className="no-conversation-selected">
-                        <FiMessageCircle />
-                        <h3>Select a conversation</h3>
-                        <p>Choose from your existing conversations or start a new one</p>
+                    /* Empty State: No conversation open */
+                    <div className="wa-empty-workspace">
+                        <div className="wa-empty-illustration">
+                            <FiMessageCircle size={56} />
+                        </div>
+                        <h2>Khushboo Pathshala Messages</h2>
+                        <p>
+                            Send and receive real-time messages with your mentors, study cohorts, and peers.
+                        </p>
+                        <button
+                            type="button"
+                            className="wa-btn-start-chat-large"
+                            onClick={() => setShowNewChatModal(true)}
+                        >
+                            <FiPlus size={16} /> Start a New Conversation
+                        </button>
                     </div>
                 )}
-            </div>
+            </main>
 
+            {/* ── New Chat / Contacts Modal ── */}
+            {showNewChatModal && (
+                <div className="wa-modal-backdrop" onClick={() => setShowNewChatModal(false)}>
+                    <div className="wa-modal-card" onClick={(e) => e.stopPropagation()}>
+                        <div className="wa-modal-header">
+                            <h3>Start New Conversation</h3>
+                            <button
+                                type="button"
+                                className="wa-modal-close-btn"
+                                onClick={() => setShowNewChatModal(false)}
+                            >
+                                <FiX size={18} />
+                            </button>
+                        </div>
+                        <div className="wa-contacts-modal-list">
+                            {contacts.length === 0 ? (
+                                <p className="wa-contacts-empty">No contacts available.</p>
+                            ) : (
+                                contacts.map(c => (
+                                    <div
+                                        key={c.id}
+                                        className="wa-contact-row"
+                                        onClick={() => handleStartChatWithUser(c)}
+                                    >
+                                        <img
+                                            src={c.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.name}`}
+                                            alt={c.name}
+                                            className="wa-contact-row-avatar"
+                                        />
+                                        <div className="wa-contact-row-info">
+                                            <strong>{c.name}</strong>
+                                            <span>{c.role ? `${c.role} • ${c.email}` : c.email}</span>
+                                        </div>
+                                        <button type="button" className="wa-btn-chat-pill">
+                                            Chat
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Create Group Modal ── */}
             {showCreateModal && (
                 <CreateGroupModal
                     onClose={() => setShowCreateModal(false)}
-                    onGroupCreated={async (group) => {
-                        // 1. Close modal immediately
+                    onGroupCreated={(group) => {
                         setShowCreateModal(false);
-                        // 2. Optimistically show the group right away
                         setConversations(prev => [group, ...prev]);
                         setSelectedConversation(group);
                         setShowMobileSidebar(false);
-                        // 3. Re-fetch all conversations from backend after brief delay
-                        //    to ensure DB write is fully committed and shape matches
-                        setTimeout(async () => {
-                            try {
-                                const response = await chatAPI.getGroups();
-                                if (Array.isArray(response?.data)) {
-                                    setConversations(response.data);
-                                    // Re-select the same group from fresh data
-                                    const freshGroup = response.data.find(g => g.id === group.id);
-                                    if (freshGroup) setSelectedConversation(freshGroup);
-                                }
-                            } catch (err) {
-                                console.error('Failed to refresh groups after creation:', err);
-                            }
-                        }, 500);
+                        refreshConversations();
                     }}
                 />
             )}
 
-            {/* Group Info Panel */}
-            {/* Right Side Panels */}
+            {/* ── Side Panels (Info / Details) ── */}
             <AnimatePresence>
                 {showGroupInfo && selectedConversation && (
                     <GroupInfoPanel
@@ -509,12 +732,16 @@ const MessagingPage = ({ initialChatUser, onClearInitialChatUser }) => {
                         onClose={() => setShowGroupInfo(false)}
                         currentUserId={currentUserId}
                         currentUser={currentUser}
-                        onLeave={handleLeaveGroup}
+                        onLeave={(groupId) => {
+                            setConversations(prev => prev.filter(c => c.id !== groupId));
+                            setSelectedConversation(null);
+                            setShowGroupInfo(false);
+                        }}
                     />
                 )}
-                {showUserInfo && selectedConversation && selectedConversation.groupType === 'direct' && (
+                {showUserInfo && selectedConversation && isDirect && (
                     <UserInfoPanel
-                        user={getOtherUser(selectedConversation)}
+                        user={activeOtherUser}
                         onClose={() => setShowUserInfo(false)}
                     />
                 )}

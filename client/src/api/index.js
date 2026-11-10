@@ -104,6 +104,8 @@ export const userAPI = {
     changePassword: (data) => api.put('/users/password', data),
     getLoginHistory: () => api.get('/users/login-history'),
     getNotifications: () => api.get('/notifications'),
+    markNotificationsRead: (type) => api.get('/notifications', { params: { action: 'read', type } }),
+    deleteNotification: (id) => api.get('/notifications', { params: { action: 'delete', id } }),
     getStudentResources: () => api.get('/student/resources'),
 };
 
@@ -212,6 +214,12 @@ export const chatAPI = {
     }),
     getUsers: () => api.get('/chat/users'),
     getContacts: () => api.get('/chat/contacts'),
+    getUnreadCount: () => api.get('/notifications').then(res => {
+        const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+        const unreadChat = list.filter(n => !n.isRead && n.type === 'CHAT').length;
+        return { data: { unreadCount: unreadChat } };
+    }),
+    markRead: () => api.get('/notifications', { params: { action: 'read', type: 'CHAT' } }),
 };
 
 export const quizAPI = {

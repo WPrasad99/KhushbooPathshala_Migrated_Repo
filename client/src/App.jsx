@@ -84,6 +84,11 @@ function AppRoutes() {
           <MessagingLayout />
         </ProtectedRoute>
       } />
+      <Route path="/chat/:userId" element={
+        <ProtectedRoute>
+          <MessagingLayout />
+        </ProtectedRoute>
+      } />
       <Route path="/settings" element={
         <ProtectedRoute>
           <SettingsRedirect />
@@ -110,6 +115,7 @@ function AppRoutes() {
         <Route path="roadmap" element={<Roadmap />} />
         <Route path="mentor" element={<MentorProgram />} />
         <Route path="messages" element={<MessagingPage />} />
+        <Route path="chat/:userId" element={<MessagingPage />} />
         <Route path="forum" element={<Forum />} />
 
         <Route path="assignments" element={<StudentDashboard />} />
