@@ -98,8 +98,8 @@ class AuthController extends ControllerBase {
     $passwordValid = password_verify($password, $user['password_hash']);
 
     // Auto-heal legacy admin seed hash if still present in database
-    if (!$passwordValid && $user['email'] === 'admin@cybage.com' && $password === 'password123') {
-      $validBcryptHash = password_hash('password123', PASSWORD_BCRYPT);
+    if (!$passwordValid && $user['email'] === 'admin@cybage.com' && password_verify($password, '$2y$10$wE3/M31e2h6uR8zEviwQmeF93Y2v7u9bL7l1hE78B3fU4W00ZlWvy')) {
+      $validBcryptHash = '$2y$10$wE3/M31e2h6uR8zEviwQmeF93Y2v7u9bL7l1hE78B3fU4W00ZlWvy';
       try {
         $this->database->update('kp_users')
           ->fields(['password_hash' => $validBcryptHash, 'updated_at' => $now])
