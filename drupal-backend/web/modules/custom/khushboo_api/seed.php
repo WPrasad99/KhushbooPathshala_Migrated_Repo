@@ -24,7 +24,7 @@ foreach ($tables as $tbl) {
 }
 
 $passwordHash = password_hash('password123', PASSWORD_BCRYPT);
-$adminPasswordHash = password_hash('c', PASSWORD_BCRYPT);
+$adminPasswordHash = password_hash('password123', PASSWORD_BCRYPT);
 $now = time();
 
 // 1. Users
