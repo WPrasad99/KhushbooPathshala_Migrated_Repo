@@ -45,13 +45,25 @@ class AdminController extends ControllerBase {
 
   /**
    * GET /api/admin/users
+   * Supports pagination via ?page=0&limit=50 query parameters.
    */
   public function getUsers(Request $request): JsonResponse {
     if ($err = $this->requireAdmin($request)) return $err;
 
+    $page  = max(0, (int)($request->query->get('page', 0)));
+    $limit = min(100, max(1, (int)($request->query->get('limit', 50))));
+
+    // Total count for pagination meta.
+    $total = (int)$this->database->select('kp_users', 'u')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+
+    // Paginated user query.
     $users = $this->database->select('kp_users', 'u')
       ->fields('u')
       ->orderBy('created_at', 'DESC')
+      ->range($page * $limit, $limit)
       ->execute()
       ->fetchAllAssoc('id');
 
@@ -61,7 +73,15 @@ class AdminController extends ControllerBase {
       $list[] = $u;
     }
 
-    return $this->jwt->successResponse($list);
+    return new JsonResponse([
+      'success' => true,
+      'data'    => $list,
+      'meta'    => [
+        'page'  => $page,
+        'limit' => $limit,
+        'total' => $total,
+      ],
+    ]);
   }
 
   /**
@@ -460,48 +480,51 @@ class AdminController extends ControllerBase {
     $id = 'batch_' . bin2hex(random_bytes(16));
     $now = time();
 
-    $this->database->insert('kp_batches')->fields([
-      'id' => $id,
-      'name' => $data['name'] ?? 'New Batch',
-      'description' => $data['description'] ?? '',
-      'code' => $data['code'] ?? ('KP-' . date('Y')),
-      'start_date' => $data['startDate'] ?? date('Y-m-d'),
-      'end_date' => $data['endDate'] ?? date('Y-m-d', strtotime('+1 year')),
-      'created_at' => $now,
-      'updated_at' => $now,
-    ])->execute();
+    $transaction = $this->database->startTransaction();
+    try {
+      $this->database->insert('kp_batches')->fields([
+        'id' => $id,
+        'name' => $data['name'] ?? 'New Batch',
+        'description' => $data['description'] ?? '',
+        'code' => $data['code'] ?? ('KP-' . date('Y')),
+        'start_date' => $data['startDate'] ?? date('Y-m-d'),
+        'end_date' => $data['endDate'] ?? date('Y-m-d', strtotime('+1 year')),
+        'created_at' => $now,
+        'updated_at' => $now,
+      ])->execute();
 
-    // Assign student IDs if provided
-    $studentIds = $data['studentIds'] ?? [];
-    foreach ($studentIds as $sId) {
-      if (!empty($sId)) {
-        try {
+      // Assign student IDs if provided
+      $studentIds = $data['studentIds'] ?? [];
+      foreach ($studentIds as $sId) {
+        if (!empty($sId)) {
           $this->database->insert('kp_batch_students')->fields([
             'id' => 'bs_' . bin2hex(random_bytes(16)),
             'batch_id' => $id,
             'user_id' => $sId,
             'joined_at' => $now,
           ])->execute();
-        } catch (\Exception $e) {}
+        }
       }
-    }
 
-    // Assign mentor IDs if provided
-    $mentorIds = $data['mentorIds'] ?? [];
-    if (!empty($data['mentorId']) && !in_array($data['mentorId'], $mentorIds)) {
-      $mentorIds[] = $data['mentorId'];
-    }
-    foreach ($mentorIds as $mId) {
-      if (!empty($mId)) {
-        try {
+      // Assign mentor IDs if provided
+      $mentorIds = $data['mentorIds'] ?? [];
+      if (!empty($data['mentorId']) && !in_array($data['mentorId'], $mentorIds)) {
+        $mentorIds[] = $data['mentorId'];
+      }
+      foreach ($mentorIds as $mId) {
+        if (!empty($mId)) {
           $this->database->insert('kp_batch_mentors')->fields([
             'id' => 'bm_' . bin2hex(random_bytes(16)),
             'batch_id' => $id,
             'user_id' => $mId,
             'assigned_at' => $now,
           ])->execute();
-        } catch (\Exception $e) {}
+        }
       }
+    }
+    catch (\Exception $e) {
+      $transaction->rollBack();
+      return $this->jwt->errorResponse('Failed to create batch: ' . $e->getMessage(), 500, 'SERVER_ERROR');
     }
 
     $b = $this->database->select('kp_batches', 'b')->fields('b')->condition('id', $id)->execute()->fetchAssoc();

@@ -51,24 +51,28 @@ class ChatController extends ControllerBase {
    * @return array [{userId, role, user: {id, name, avatar, role}}]
    */
   private function getGroupMembers(string $groupId): array {
-    $rows = $this->database->select('kp_chat_members', 'cm')
-      ->fields('cm', ['user_id', 'role'])
-      ->condition('group_id', $groupId)
-      ->execute()
-      ->fetchAll();
+    $query = $this->database->select('kp_chat_members', 'cm');
+    $query->join('kp_users', 'u', 'cm.user_id = u.id');
+    $query->addField('cm', 'user_id');
+    $query->addField('cm', 'role', 'member_role');
+    $query->addField('u', 'id', 'u_id');
+    $query->addField('u', 'name', 'u_name');
+    $query->addField('u', 'avatar', 'u_avatar');
+    $query->addField('u', 'role', 'u_role');
+    $query->condition('cm.group_id', $groupId);
+    $rows = $query->execute()->fetchAll();
 
     $members = [];
     foreach ($rows as $row) {
-      $user = $this->database->select('kp_users', 'u')
-        ->fields('u', ['id', 'name', 'avatar', 'role'])
-        ->condition('id', $row->user_id)
-        ->execute()
-        ->fetchAssoc();
-
       $members[] = [
         'userId' => $row->user_id,
-        'role'   => $row->role,
-        'user'   => $user ?: ['id' => $row->user_id, 'name' => 'Unknown', 'avatar' => null, 'role' => null],
+        'role'   => $row->member_role,
+        'user'   => [
+          'id'     => $row->u_id,
+          'name'   => $row->u_name,
+          'avatar' => $row->u_avatar,
+          'role'   => $row->u_role,
+        ],
       ];
     }
     return $members;

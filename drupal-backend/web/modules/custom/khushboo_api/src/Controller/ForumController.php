@@ -39,22 +39,31 @@ class ForumController extends ControllerBase {
     }
 
     $batchId = $request->query->get('batchId');
-    $query = $this->database->select('kp_forum_posts', 'p')->fields('p');
+    $page  = max(0, (int)($request->query->get('page', 0)));
+    $limit = min(100, max(1, (int)($request->query->get('limit', 50))));
+
+    $query = $this->database->select('kp_forum_posts', 'p');
+    $query->join('kp_users', 'u', 'p.user_id = u.id');
+    $query->fields('p');
+    $query->addField('u', 'name', 'author_name');
+    $query->addField('u', 'avatar', 'author_avatar');
+    $query->addField('u', 'role', 'author_role');
 
     if (!empty($batchId)) {
-      $query->condition('batch_id', $batchId);
+      $query->condition('p.batch_id', $batchId);
     }
 
-    $posts = $query->orderBy('created_at', 'DESC')->execute()->fetchAllAssoc('id');
+    // Clone for total count
+    $countQuery = clone $query;
+    $total = (int)$countQuery->countQuery()->execute()->fetchField();
+
+    $posts = $query->orderBy('p.created_at', 'DESC')
+      ->range($page * $limit, $limit)
+      ->execute()
+      ->fetchAll();
 
     $list = [];
     foreach ($posts as $p) {
-      $author = $this->database->select('kp_users', 'u')
-        ->fields('u', ['id', 'name', 'avatar', 'role'])
-        ->condition('id', $p->user_id)
-        ->execute()
-        ->fetchAssoc();
-
       $answerCount = (int)$this->database->select('kp_forum_answers', 'a')
         ->condition('post_id', $p->id)
         ->countQuery()
@@ -67,13 +76,26 @@ class ForumController extends ControllerBase {
         'content' => $p->content,
         'tags' => !empty($p->tags) ? explode(',', $p->tags) : [],
         'upvotes' => (int)$p->upvotes,
-        'author' => $author,
+        'author' => [
+          'id' => $p->user_id,
+          'name' => $p->author_name ?? 'Scholar',
+          'avatar' => $p->author_avatar ?? null,
+          'role' => $p->author_role ?? 'STUDENT',
+        ],
         'answersCount' => $answerCount,
         'createdAt' => date('c', $p->created_at),
       ];
     }
 
-    return $this->jwt->successResponse($list);
+    return new JsonResponse([
+      'success' => true,
+      'data' => $list,
+      'meta' => [
+        'page' => $page,
+        'limit' => $limit,
+        'total' => $total,
+      ],
+    ]);
   }
 
   /**
