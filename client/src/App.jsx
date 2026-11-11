@@ -1,23 +1,28 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/auth/Login';
 import RoleSelection from './pages/auth/RoleSelection';
-import StudentDashboard from './pages/student/Dashboard';
 import StudentLayout from './components/layout/StudentLayout';
 import MentorLayout from './components/layout/MentorLayout';
-import Courses from './pages/student/Courses';
-import CoursePlayer from './pages/student/CoursePlayer';
-import MentorProgram from './pages/student/MentorProgram';
-import Forum from './pages/student/Forum';
-import MentorDashboard from './pages/mentor/Dashboard';
-import AdminDashboard from './pages/admin/Dashboard';
-import Settings from './pages/Settings';
-import Roadmap from './pages/student/Roadmap';
-import Loading from './components/Loading';
-import MessagingPage from './pages/MessagingPage';
 import MessagingLayout from './components/layout/MessagingLayout';
+import Loading from './components/Loading';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
+
+// Route-based code-splitting for high performance and reduced initial bundle size
+const StudentDashboard = lazy(() => import('./pages/student/Dashboard'));
+const LearningResources = lazy(() => import('./pages/student/LearningResources'));
+const StudentAssignmentSection = lazy(() => import('./components/StudentAssignmentSection'));
+const Courses = lazy(() => import('./pages/student/Courses'));
+const CoursePlayer = lazy(() => import('./pages/student/CoursePlayer'));
+const MentorProgram = lazy(() => import('./pages/student/MentorProgram'));
+const Forum = lazy(() => import('./pages/student/Forum'));
+const Roadmap = lazy(() => import('./pages/student/Roadmap'));
+const MentorDashboard = lazy(() => import('./pages/mentor/Dashboard'));
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const Settings = lazy(() => import('./pages/Settings'));
+const MessagingPage = lazy(() => import('./pages/MessagingPage'));
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -64,92 +69,83 @@ function AppRoutes() {
   }
 
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
-      <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RoleSelection mode="register" />} />
+    <Suspense fallback={<Loading />}>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
+        <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RoleSelection mode="register" />} />
 
+        <Route path="/messages" element={
+          <ProtectedRoute>
+            <MessagingLayout />
+          </ProtectedRoute>
+        } />
+        <Route path="/chat/:userId" element={
+          <ProtectedRoute>
+            <MessagingLayout />
+          </ProtectedRoute>
+        } />
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <SettingsRedirect />
+          </ProtectedRoute>
+        } />
 
-      {/* Profile Completion - REMOVED */}
-      {/* <Route path="/complete-profile" element={
-        <ProtectedRoute>
-          <AdditionalInfo />
-        </ProtectedRoute>
-      } /> */}
+        {/* Dashboard Router */}
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <DashboardRouter />
+          </ProtectedRoute>
+        } />
 
+        {/* Student Routes with Layout */}
+        <Route path="/student" element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <StudentLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<StudentDashboard />} />
+          <Route path="courses" element={<Courses />} />
+          <Route path="courses/:courseId" element={<CoursePlayer />} />
+          <Route path="resources" element={<LearningResources />} />
+          <Route path="roadmap" element={<Roadmap />} />
+          <Route path="mentor" element={<MentorProgram />} />
+          <Route path="messages" element={<MessagingPage />} />
+          <Route path="chat/:userId" element={<MessagingPage />} />
+          <Route path="forum" element={<Forum />} />
+          <Route path="assignments" element={<StudentAssignmentSection />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
 
+        {/* Mentor Routes */}
+        <Route path="/mentor" element={
+          <ProtectedRoute allowedRoles={['MENTOR']}>
+            <MentorLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<MentorDashboard />} />
+          <Route path="batches" element={<MentorDashboard />} />
+          <Route path="sessions" element={<MentorDashboard />} />
+          <Route path="mentorship" element={<MentorDashboard />} />
+          <Route path="forum" element={<MentorDashboard />} />
+          <Route path="assignments" element={<MentorDashboard />} />
+          <Route path="messages" element={<MessagingPage />} />
+          <Route path="chat/:userId" element={<MessagingPage />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
 
-      <Route path="/messages" element={
-        <ProtectedRoute>
-          <MessagingLayout />
-        </ProtectedRoute>
-      } />
-      <Route path="/chat/:userId" element={
-        <ProtectedRoute>
-          <MessagingLayout />
-        </ProtectedRoute>
-      } />
-      <Route path="/settings" element={
-        <ProtectedRoute>
-          <SettingsRedirect />
-        </ProtectedRoute>
-      } />
+        {/* Admin Routes */}
+        <Route path="/admin" element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
 
-      {/* Dashboard Router */}
-      <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <DashboardRouter />
-        </ProtectedRoute>
-      } />
-
-      {/* Student Routes with Layout */}
-      <Route path="/student" element={
-        <ProtectedRoute allowedRoles={['STUDENT']}>
-          <StudentLayout />
-        </ProtectedRoute>
-      }>
-        <Route index element={<StudentDashboard />} />
-        <Route path="courses" element={<Courses />} />
-        <Route path="courses/:courseId" element={<CoursePlayer />} />
-        <Route path="resources" element={<StudentDashboard />} />
-        <Route path="roadmap" element={<Roadmap />} />
-        <Route path="mentor" element={<MentorProgram />} />
-        <Route path="messages" element={<MessagingPage />} />
-        <Route path="chat/:userId" element={<MessagingPage />} />
-        <Route path="forum" element={<Forum />} />
-
-        <Route path="assignments" element={<StudentDashboard />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-
-      {/* Mentor Routes */}
-      <Route path="/mentor" element={
-        <ProtectedRoute allowedRoles={['MENTOR']}>
-          <MentorLayout />
-        </ProtectedRoute>
-      }>
-        <Route index element={<MentorDashboard />} />
-        <Route path="batches" element={<MentorDashboard />} />
-        <Route path="sessions" element={<MentorDashboard />} />
-        <Route path="mentorship" element={<MentorDashboard />} />
-        <Route path="forum" element={<MentorDashboard />} />
-        <Route path="assignments" element={<MentorDashboard />} />
-        <Route path="messages" element={<MessagingPage />} />
-        <Route path="chat/:userId" element={<MessagingPage />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-
-      {/* Admin Routes */}
-      <Route path="/admin" element={
-        <ProtectedRoute allowedRoles={['ADMIN']}>
-          <AdminDashboard />
-        </ProtectedRoute>
-      } />
-
-      {/* Default Redirect */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+        {/* Default Redirect */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 

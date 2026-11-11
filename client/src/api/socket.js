@@ -98,6 +98,9 @@ class RealtimeClient {
 
         this.syncTimer = setInterval(async () => {
             if (!this.connected) return;
+            // Skip sync if the browser tab is hidden to conserve bandwidth and reduce DB load
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+
             const token = localStorage.getItem('token');
             if (!token) return;
 
@@ -106,7 +109,7 @@ class RealtimeClient {
                 const url = `${API_BASE}/api/chat/sync?since=${this.lastServerTime}${roomParam}`;
                 const res = await axios.get(url, {
                     headers: { Authorization: `Bearer ${token}` },
-                    timeout: 4000
+                    timeout: 5000
                 });
 
                 const payload = res.data?.data || res.data;
@@ -124,7 +127,7 @@ class RealtimeClient {
             } catch (e) {
                 // Background sync error ignored
             }
-        }, 1500);
+        }, 8000);
     }
 }
 

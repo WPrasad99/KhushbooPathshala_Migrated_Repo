@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { io } from 'socket.io-client';
 import api, { userAPI, authAPI, setAuthFailureCallback, clearAuthFailureCallback } from '../api';
+import socket, { connectSocket, disconnectSocket } from '../api/socket';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5001';
 
@@ -24,7 +24,6 @@ export const AuthProvider = ({ children }) => {
         }
     });
     const [loading, setLoading] = useState(true);
-    const [socket, setSocket] = useState(null);
     const initRan = useRef(false);
 
     const logout = useCallback(() => {
@@ -33,14 +32,11 @@ export const AuthProvider = ({ children }) => {
         } catch { /* ignore */ }
         setToken(null);
         setUser(null);
-        if (socket) {
-            try {
-                socket.disconnect();
-            } catch { /* ignore */ }
-            setSocket(null);
-        }
+        try {
+            disconnectSocket();
+        } catch { /* ignore */ }
         delete api.defaults.headers.common['Authorization'];
-    }, [socket]);
+    }, []);
 
     // Register logout callback for API interceptor (401 handling)
     useEffect(() => {
@@ -141,22 +137,14 @@ export const AuthProvider = ({ children }) => {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, [logout]);
 
-    // Initialize Socket.IO
+    // Initialize Realtime Socket Sync
     useEffect(() => {
-        if (!user?.id || socket) return;
-        const newSocket = io(API_BASE, {
-            transports: ['websocket'],
-            reconnection: true,
-        });
-        newSocket.on('connect', () => {
-            newSocket.emit('join_user', user.id);
-        });
-        setSocket(newSocket);
+        if (!user?.id || !token) return;
+        connectSocket(token, user.id);
         return () => {
-            newSocket.close();
-            setSocket(null);
+            disconnectSocket();
         };
-    }, [user?.id]);
+    }, [user?.id, token]);
 
     return (
         <AuthContext.Provider value={{
