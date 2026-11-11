@@ -888,3 +888,14 @@ $databases['default']['default'] = array (
   'autoload' => 'core/modules/mysql\\src\\Driver\\Database\\mysql\\',
 );
 $settings['config_sync_directory'] = 'sites/default/files/config_v3Y7ZFsFKoKeAcIXis_oQJmEwRePJ5NlKM6zb6D7nuMpOnOGq10wsYosd7qp10KQneEyAylQuw/sync';
+
+// Production overrides — env vars take precedence when set
+if (getenv('KP_DB_NAME')) {
+  $databases['default']['default']['database'] = getenv('KP_DB_NAME');
+  $databases['default']['default']['username'] = getenv('KP_DB_USER') ?: 'root';
+  $databases['default']['default']['password'] = getenv('KP_DB_PASS') ?: '';
+  $databases['default']['default']['host']     = getenv('KP_DB_HOST') ?: '127.0.0.1';
+}
+if (getenv('KP_HASH_SALT')) {
+  $settings['hash_salt'] = getenv('KP_HASH_SALT');
+}

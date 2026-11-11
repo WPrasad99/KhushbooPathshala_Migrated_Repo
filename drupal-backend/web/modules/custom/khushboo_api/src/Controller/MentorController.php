@@ -319,10 +319,30 @@ class MentorController extends ControllerBase {
     $file = $request->files->get('file');
     $filePath = '';
     if ($file && $file->isValid()) {
+      $allowedMimes = ['video/mp4', 'video/webm', 'application/pdf',
+                       'application/msword',
+                       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                       'application/vnd.ms-powerpoint',
+                       'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                       'application/zip', 'application/x-zip-compressed'];
+      $allowedExts  = ['mp4', 'webm', 'pdf', 'doc', 'docx', 'ppt', 'pptx', 'zip'];
+      $maxSize      = 100 * 1024 * 1024; // 100 MB
+
+      $ext  = strtolower($file->guessExtension() ?? '');
+      $mime = $file->getMimeType();
+      $size = $file->getSize();
+
+      if (!in_array($ext, $allowedExts, true) || !in_array($mime, $allowedMimes, true)) {
+        return $this->jwt->errorResponse('Invalid file type. Allowed: ' . implode(', ', $allowedExts), 400);
+      }
+      if ($size > $maxSize) {
+        return $this->jwt->errorResponse('File too large. Maximum size: ' . ($maxSize / 1024 / 1024) . 'MB', 400);
+      }
+
       $filename = 'res_' . time() . '_' . $file->getClientOriginalName();
       $destination = \Drupal::root() . '/sites/default/files/resources';
       if (!is_dir($destination)) {
-        mkdir($destination, 0777, TRUE);
+        mkdir($destination, 0755, TRUE);
       }
       $file->move($destination, $filename);
       $filePath = '/sites/default/files/resources/' . $filename;

@@ -204,10 +204,28 @@ class AssignmentController extends ControllerBase {
     $file = $request->files->get('file');
     $filePath = '';
     if ($file && $file->isValid()) {
+      $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf',
+                       'application/msword',
+                       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                       'application/zip', 'application/x-zip-compressed'];
+      $allowedExts  = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'doc', 'docx', 'zip'];
+      $maxSize      = 10 * 1024 * 1024; // 10 MB
+
+      $ext  = strtolower($file->guessExtension() ?? '');
+      $mime = $file->getMimeType();
+      $size = $file->getSize();
+
+      if (!in_array($ext, $allowedExts, true) || !in_array($mime, $allowedMimes, true)) {
+        return $this->jwt->errorResponse('Invalid file type. Allowed: ' . implode(', ', $allowedExts), 400);
+      }
+      if ($size > $maxSize) {
+        return $this->jwt->errorResponse('File too large. Maximum size: ' . ($maxSize / 1024 / 1024) . 'MB', 400);
+      }
+
       $filename = 'sub_' . $user['id'] . '_' . time() . '.' . $file->guessExtension();
       $destination = \Drupal::root() . '/sites/default/files/submissions';
       if (!is_dir($destination)) {
-        mkdir($destination, 0777, TRUE);
+        mkdir($destination, 0755, TRUE);
       }
       $file->move($destination, $filename);
       $filePath = '/sites/default/files/submissions/' . $filename;

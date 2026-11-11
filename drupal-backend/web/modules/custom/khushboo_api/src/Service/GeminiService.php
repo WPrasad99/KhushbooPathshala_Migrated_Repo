@@ -15,7 +15,7 @@ class GeminiService {
   public function __construct(ClientInterface $httpClient) {
     $this->httpClient = $httpClient;
     // Check environment variable or fallback to provided project API key
-    $this->apiKey = getenv('GEMINI_API_KEY') ?: 'AIzaSyA715Aw-FYLq7IllHybBLCIcLGLc2X8Hw8';
+    $this->apiKey = getenv('GEMINI_API_KEY') ?: '';
   }
 
   /**

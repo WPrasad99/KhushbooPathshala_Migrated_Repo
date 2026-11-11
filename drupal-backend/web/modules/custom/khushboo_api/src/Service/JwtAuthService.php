@@ -18,7 +18,7 @@ class JwtAuthService {
 
   public function __construct(Connection $database) {
     $this->database = $database;
-    $this->secret = 'khushboo_pathshala_super_secure_enterprise_jwt_secret_2026';
+    $this->secret = getenv('KP_JWT_SECRET') ?: 'khushboo_pathshala_super_secure_enterprise_jwt_secret_2026';
   }
 
   /**

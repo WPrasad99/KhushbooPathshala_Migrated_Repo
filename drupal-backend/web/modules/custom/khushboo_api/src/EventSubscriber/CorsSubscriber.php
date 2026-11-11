@@ -24,6 +24,14 @@ class CorsSubscriber implements EventSubscriberInterface {
   }
 
   /**
+   * Returns the CORS origin allowlist from environment or default.
+   */
+  protected function getAllowedOrigins(): array {
+    $raw = getenv('KP_CORS_ORIGINS') ?: 'http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173';
+    return array_map('trim', explode(',', $raw));
+  }
+
+  /**
    * Handle preflight OPTIONS requests early.
    */
   public function onRequest(RequestEvent $event): void {
@@ -39,10 +47,13 @@ class CorsSubscriber implements EventSubscriberInterface {
     }
 
     if ($request->getMethod() === 'OPTIONS') {
-      $origin = $request->headers->get('Origin') ?: 'http://localhost:5173';
+      $origin = $request->headers->get('Origin') ?? '';
+      $allowedOrigins = $this->getAllowedOrigins();
       $response = new Response('', 204);
-      $response->headers->set('Access-Control-Allow-Origin', $origin);
-      $response->headers->set('Access-Control-Allow-Credentials', 'true');
+      if (in_array($origin, $allowedOrigins, true)) {
+        $response->headers->set('Access-Control-Allow-Origin', $origin);
+        $response->headers->set('Access-Control-Allow-Credentials', 'true');
+      }
       $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
       $response->headers->set('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, Origin, X-Requested-With');
       $response->headers->set('Access-Control-Max-Age', '86400');
@@ -66,13 +77,13 @@ class CorsSubscriber implements EventSubscriberInterface {
     }
 
     $response = $event->getResponse();
-    $origin = $request->headers->get('Origin');
-    if (!$origin) {
-      $origin = 'http://localhost:5173';
-    }
+    $origin = $request->headers->get('Origin') ?? '';
+    $allowedOrigins = $this->getAllowedOrigins();
 
-    $response->headers->set('Access-Control-Allow-Origin', $origin);
-    $response->headers->set('Access-Control-Allow-Credentials', 'true');
+    if (in_array($origin, $allowedOrigins, true)) {
+      $response->headers->set('Access-Control-Allow-Origin', $origin);
+      $response->headers->set('Access-Control-Allow-Credentials', 'true');
+    }
     $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
     $response->headers->set('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, Origin, X-Requested-With');
     $response->headers->set('Access-Control-Expose-Headers', 'Authorization, Content-Type');
