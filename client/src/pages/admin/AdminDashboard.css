@@ -102,7 +102,8 @@
 .admin-page-container {
     max-width: 100%;
     margin: 0;
-    padding: 32px 24px;
+    padding: 24px 36px;
+    box-sizing: border-box;
     animation: fadeIn 0.4s ease-out;
 }
 
@@ -374,7 +375,8 @@
     border: 1px solid var(--admin-border-color);
     border-radius: var(--radius-table);
     box-shadow: var(--shadow-card);
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .admin-table {
@@ -630,8 +632,8 @@
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 0 24px;
-    height: 72px;
+    padding: 0 36px;
+    height: 64px;
     /* Sleeker profile */
     display: flex;
     align-items: center;
@@ -1728,7 +1730,8 @@
 .dashboard-content {
     max-width: 100%;
     margin: 0;
-    padding: 32px 24px;
+    padding: 24px 36px;
+    box-sizing: border-box;
 }
 
 .page-title-enterprise {
@@ -1845,6 +1848,15 @@
 
 /* Responsiveness overrides */
 @media (max-width: 1024px) {
+    .admin-page-container,
+    .dashboard-content {
+        padding: 20px 24px;
+    }
+
+    .admin-navbar {
+        padding: 0 24px;
+    }
+
     .announcements-grid {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -1855,6 +1867,20 @@
 }
 
 @media (max-width: 768px) {
+    .admin-page-container,
+    .dashboard-content {
+        padding: 16px 18px;
+    }
+
+    .admin-navbar {
+        padding: 0 16px;
+        height: 60px;
+    }
+
+    .user-name-text {
+        display: none;
+    }
+
     .announcements-grid {
         grid-template-columns: 1fr;
     }
@@ -1865,6 +1891,19 @@
 }
 
 @media (max-width: 480px) {
+    .admin-page-container,
+    .dashboard-content {
+        padding: 14px 14px;
+    }
+
+    .admin-navbar {
+        padding: 0 12px;
+    }
+
+    .mentor-logo-text {
+        font-size: 0.95rem;
+    }
+
     .stats-grid {
         grid-template-columns: 1fr;
     }
@@ -2577,9 +2616,11 @@
 
 /* ===== AESTHETIC MINIMAL ANNOUNCEMENTS SECTION ===== */
 .announcements-aesthetic-container {
-    max-width: 1240px;
-    margin: 0 auto;
-    padding: 24px 20px;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .announcements-split-layout {

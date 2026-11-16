@@ -221,8 +221,15 @@
 
 .user-message .message-content {
     background: var(--color-primary);
-    color: var(--text-white);
+    color: var(--text-white) !important;
     border-bottom-right-radius: var(--radius-xs);
+}
+
+.user-message .message-content,
+.user-message .message-content p,
+.user-message .message-content span,
+.user-message .message-content div {
+    color: #ffffff !important;
 }
 
 .bot-message .message-content {

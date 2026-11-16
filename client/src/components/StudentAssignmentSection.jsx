@@ -538,7 +538,7 @@ const StudentAssignmentSection = () => {
                 borderRadius: '12px',
                 border: '1.5px solid var(--admin-border-color)',
                 padding: '14px 20px',
-                marginBottom: '24px',
+                marginBottom: '20px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -654,8 +654,8 @@ const StudentAssignmentSection = () => {
             ) : items.length > 0 ? (
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))',
-                    gap: '18px'
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
+                    gap: '16px'
                 }}>
                     {items.map((item, index) => {
                         const isAssignment = item.type === 'assignment';

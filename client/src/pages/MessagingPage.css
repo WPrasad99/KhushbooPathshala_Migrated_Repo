@@ -449,8 +449,17 @@
 
 .wa-message-row.is-own .wa-message-bubble {
     background: #4f46e5;
-    color: #ffffff;
+    color: #ffffff !important;
     border-bottom-right-radius: 2px;
+}
+
+.wa-message-row.is-own .wa-message-text,
+.wa-message-row.is-own .wa-message-bubble p,
+.wa-message-row.is-own .wa-message-bubble span,
+.wa-message-row.is-own .wa-message-bubble strong,
+.wa-message-row.is-own .wa-message-bubble em,
+.wa-message-row.is-own .wa-message-bubble div {
+    color: #ffffff !important;
 }
 
 .wa-message-row.is-other .wa-message-bubble {
@@ -458,6 +467,10 @@
     color: #1e293b;
     border-bottom-left-radius: 2px;
     border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.wa-message-row.is-other .wa-message-text {
+    color: #1e293b;
 }
 
 .wa-sender-label {
@@ -487,7 +500,12 @@
 }
 
 .wa-message-row.is-own .wa-bubble-meta {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.wa-message-row.is-own .wa-bubble-time,
+.wa-message-row.is-own .wa-check-ticks {
+    color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .wa-message-row.is-other .wa-bubble-meta {
@@ -527,6 +545,17 @@
     text-decoration: none;
     font-size: 12px;
     font-weight: 500;
+}
+
+.wa-message-row.is-own .wa-file-pill {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.wa-message-row.is-own .wa-file-pill svg,
+.wa-message-row.is-own .wa-file-name {
+    color: #ffffff !important;
 }
 
 .wa-file-name {

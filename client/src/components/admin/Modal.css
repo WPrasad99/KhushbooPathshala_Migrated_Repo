@@ -379,3 +379,27 @@ textarea.glass-input {
     background: var(--bg-secondary);
     border-color: var(--border-subtle);
 }
+
+@media (max-width: 640px) {
+    .modal-overlay {
+        padding: 12px;
+    }
+
+    .glass-modal {
+        max-width: 100%;
+        max-height: calc(100vh - 24px);
+        border-radius: var(--radius-lg, 14px);
+    }
+
+    .modal-header {
+        padding: 16px;
+    }
+
+    .modal-body {
+        padding: 16px;
+    }
+
+    .modal-footer {
+        padding: 14px 16px;
+    }
+}

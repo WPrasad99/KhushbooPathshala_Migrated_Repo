@@ -4,15 +4,20 @@
 
 .settings-container {
     background: transparent;
-    padding: var(--space-20);
+    padding: 24px 36px;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     width: 100%;
+    box-sizing: border-box;
+}
+
+.mentor-content-viewport .settings-container {
+    padding: 0;
 }
 
 .settings-card {
     width: 100%;
-    max-width: 1100px;
+    max-width: 100%;
     background: var(--color-surface);
     border-radius: 12px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);

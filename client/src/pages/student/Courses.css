@@ -1,17 +1,18 @@
 .learning-page {
     display: flex;
     flex-direction: column;
-    gap: var(--space-32);
+    gap: var(--space-24);
+    width: 100%;
 }
 
 .learning-hero {
-    padding: var(--space-48) var(--space-32);
+    padding: 28px 32px;
     border-radius: var(--radius-lg);
     background: linear-gradient(135deg, var(--color-bg) 0%, #e0e7ff 100%);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-24);
+    gap: var(--space-20);
     border: 1px solid var(--color-border);
 }
 

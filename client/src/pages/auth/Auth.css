@@ -60,7 +60,7 @@
    ================================================================ */
 .auth-container-static {
     display: flex;
-    width: 100vw;
+    width: 100%;
     height: 100vh;
     min-height: 600px;
     background: var(--color-bg);
@@ -805,7 +805,8 @@
     }
 
     .login-left-panel {
-        width: 100vw;
+        width: 100%;
+        max-width: 100%;
         height: auto;
         min-height: 100vh;
         padding: var(--space-20) var(--space-16);

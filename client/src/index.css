@@ -152,7 +152,7 @@
   /* Increased from 240px as requested */
   --sidebar-collapsed-width: 72px;
   --navbar-height: 64px;
-  --content-max-width: 1320px;
+  --content-max-width: 100%;
 
   /* ── Admin/Mentor Variable Bridge (Backwards Compatibility) ── */
   --admin-bg-color: var(--bg-primary);
@@ -270,6 +270,7 @@ html {
   height: 100%;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -282,6 +283,7 @@ body {
   font-size: var(--fs-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
   transition: background-color var(--dur-slow) var(--ease-standard),
     color var(--dur-normal) var(--ease-standard);
 }
@@ -1040,12 +1042,12 @@ select:disabled {
 /* ── Main Content ── */
 .kp-shell-content {
   flex: 1;
-  padding: 24px;
-  /* Unified 24px padding for perfect consistency */
+  padding: 24px 36px;
   overflow-y: auto;
-  max-width: var(--content-max-width);
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .kp-shell-content.is-messaging {
@@ -1427,13 +1429,17 @@ tr:hover td {
 
   .kp-topbar,
   .kp-navbar {
-    padding: 0 var(--space-16);
+    padding: 0 var(--space-20);
+  }
+
+  .kp-shell-content {
+    padding: 20px 24px;
   }
 }
 
 @media (max-width: 768px) {
   .kp-shell-content {
-    padding: var(--space-20);
+    padding: 16px 18px;
   }
 
   .stat-card-grid {
@@ -1454,7 +1460,7 @@ tr:hover td {
 
 @media (max-width: 480px) {
   .kp-shell-content {
-    padding: var(--space-16);
+    padding: 14px 14px;
   }
 
   h1 {

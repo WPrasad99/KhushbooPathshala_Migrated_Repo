@@ -11,9 +11,10 @@
 .mentor-content-viewport {
     flex: 1;
     width: 100%;
-    max-width: 1360px;
-    margin: 0 auto;
-    padding: 32px 24px;
+    max-width: 100%;
+    margin: 0;
+    padding: 24px 36px;
+    box-sizing: border-box;
     animation: fadeIn 0.35s ease-out;
 }
 
@@ -24,9 +25,39 @@
     overflow: hidden;
 }
 
+/* Eliminate duplicate margin/padding for inner pages inside the viewport */
+.mentor-content-viewport > .dashboard-content,
+.mentor-content-viewport > .roadmap-container,
+.mentor-content-viewport > .course-studio-wrapper,
+.mentor-content-viewport > .mentor-container,
+.mentor-content-viewport > .forum-v2-page,
+.mentor-content-viewport > .learning-page,
+.mentor-content-viewport > .mentor-program-page,
+.mentor-content-viewport > .settings-container {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+@media (max-width: 1024px) {
+    .mentor-content-viewport {
+        padding: 20px 24px;
+    }
+}
+
 @media (max-width: 768px) {
     .mentor-content-viewport {
-        padding: 20px 16px;
+        padding: 16px 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .mentor-content-viewport {
+        padding: 14px 14px;
     }
 }
 

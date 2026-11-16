@@ -6,10 +6,15 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
-    max-width: 1440px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
     width: 100%;
+    box-sizing: border-box;
     animation: fadeIn 0.25s ease-out;
+}
+
+.mentor-content-viewport .course-studio-wrapper {
+    padding: 0;
 }
 
 /* ── Top Bar Header ── */
@@ -693,4 +698,32 @@
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .course-studio-wrapper {
+        gap: 16px;
+    }
+    .course-studio-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px 14px;
+    }
+    .course-studio-header-right {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .course-studio-wrapper {
+        gap: 12px;
+    }
+    .course-studio-header {
+        padding: 10px 12px;
+    }
 }

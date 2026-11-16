@@ -130,27 +130,46 @@
 
 /* 3. PAGE CONTENT CONTAINER */
 .dashboard-content {
-    max-width: 1200px;
-    /* Matched to requested exact layout */
+    max-width: 100%;
     width: 100%;
-    margin: 0 auto;
-    padding: 24px;
+    margin: 0;
+    padding: 24px 36px;
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    /* Consistent vertical rhythm */
+    gap: 20px;
     box-sizing: border-box;
+}
+
+.mentor-content-viewport .dashboard-content {
+    padding: 0;
 }
 
 @media (max-width: 1024px) {
     .dashboard-content {
-        padding: 24px;
+        padding: 20px 24px;
+    }
+    .mentor-content-viewport .dashboard-content {
+        padding: 0;
     }
 }
 
 @media (max-width: 768px) {
     .dashboard-content {
-        padding: 16px;
+        padding: 16px 18px;
+        gap: 16px;
+    }
+    .mentor-content-viewport .dashboard-content {
+        padding: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-content {
+        padding: 14px 14px;
+        gap: 14px;
+    }
+    .mentor-content-viewport .dashboard-content {
+        padding: 0;
     }
 }
 
@@ -507,8 +526,11 @@
     }
 
     .dashboard-content {
-        padding: 16px;
+        padding: 14px 12px;
         gap: 16px;
+    }
+    .mentor-content-viewport .dashboard-content {
+        padding: 0;
     }
 
     .student-main-content {
