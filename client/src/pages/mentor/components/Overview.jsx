@@ -1,295 +1,350 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-    Users, Video, FileText, Calendar, ChevronRight,
-    Clock, Plus, MessageSquare, TrendingUp, AlertCircle, CheckCircle2
-} from 'lucide-react';
-import { useMentorBatches, useMentorMeetings } from '../../../hooks/mentor/useMentorQueries';
+import React, { useState } from 'react';
+import { FiCalendar, FiClock } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
+import './MentorLanding.css';
 
-// Animated CountUp for metric cards
-const CountUp = ({ value, duration = 1200 }) => {
-    const [count, setCount] = useState(0);
+// Components & Modals
+import MenteeDetailsView from './MenteeDetailsView';
+import ScheduleCallModal from './ScheduleCallModal';
+import CsrFeedbackModal from './CsrFeedbackModal';
+import MarkAvailabilityModal from './MarkAvailabilityModal';
 
-    useEffect(() => {
-        let startTimestamp = null;
-        const targetVal = Number(value) || 0;
-        const step = (timestamp) => {
-            if (!startTimestamp) startTimestamp = timestamp;
-            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            const easeProgress = 1 - Math.pow(1 - progress, 4);
-            setCount(Math.floor(easeProgress * targetVal));
-            if (progress < 1) {
-                window.requestAnimationFrame(step);
-            } else {
-                setCount(targetVal);
-            }
-        };
-        window.requestAnimationFrame(step);
-    }, [value, duration]);
+const MENTEES_LIST = [
+    {
+        id: 1,
+        name: 'Sharvari Shobhane',
+        roll: 'PUN/20-21/0010',
+        progress: 72,
+        sessions: '6/12',
+        email: 'sharvari.shobhane@gmail.com',
+        phone: '+91 9823456710',
+        course: 'B.E Computer - 2nd year',
+        status: 'On Track',
+        subject: 'Data Structures & Algorithms'
+    },
+    {
+        id: 2,
+        name: 'Neha Patel',
+        roll: 'PUN/20-21/0011',
+        progress: 32,
+        sessions: '3/12',
+        email: 'neha.patel@gmail.com',
+        phone: '+91 9876543211',
+        course: 'B.E Information Tech - 1st year',
+        status: 'Needs Attention',
+        subject: 'Object Oriented Programming'
+    },
+    {
+        id: 3,
+        name: 'Rahul Patil',
+        roll: 'PUN/20-21/0012',
+        progress: 50,
+        sessions: '6/12',
+        email: 'rahul.patil@gmail.com',
+        phone: '+91 8347892784',
+        course: 'B.E Computer - 1st year',
+        status: 'On Track',
+        subject: 'Computer Science'
+    },
+    {
+        id: 4,
+        name: 'Gayatri Mahadik',
+        roll: 'PUN/20-21/0013',
+        progress: 50,
+        sessions: '6/12',
+        email: 'gayatri.mahadik@gmail.com',
+        phone: '+91 8765432190',
+        course: 'B.E Computer - 1st year',
+        status: 'On Track',
+        subject: 'Web Technologies'
+    },
+    {
+        id: 5,
+        name: 'Aditya Badhe',
+        roll: 'PUN/20-21/0014',
+        progress: 50,
+        sessions: '6/12',
+        email: 'aditya.badhe@gmail.com',
+        phone: '+91 9456781234',
+        course: 'B.E Computer - 1st year',
+        status: 'On Track',
+        subject: 'Database Systems'
+    },
+    {
+        id: 6,
+        name: 'Sudhir Nair',
+        roll: 'PUN/20-21/0015',
+        progress: 50,
+        sessions: '6/12',
+        email: 'sudhir.nair@gmail.com',
+        phone: '+91 9345678901',
+        course: 'B.E Electronics - 2nd year',
+        status: 'On Track',
+        subject: 'Embedded Systems'
+    },
+    {
+        id: 7,
+        name: 'Aditi Chavan',
+        roll: 'PUN/20-21/0016',
+        progress: 50,
+        sessions: '6/12',
+        email: 'aditi.chavan@gmail.com',
+        phone: '+91 9123456789',
+        course: 'B.E Computer - 1st year',
+        status: 'On Track',
+        subject: 'Computer Networks'
+    },
+    {
+        id: 8,
+        name: 'Bhargav Gondaliya',
+        roll: 'PUN/20-21/0017',
+        progress: 50,
+        sessions: '6/12',
+        email: 'bhargav.g@gmail.com',
+        phone: '+91 8976543210',
+        course: 'B.E Computer - 1st year',
+        status: 'On Track',
+        subject: 'Operating Systems'
+    }
+];
 
-    return <span>{count}</span>;
-};
-
-const PerformanceChart = () => {
-    const data = [
-        { label: 'Mon', value: 65 },
-        { label: 'Tue', value: 45 },
-        { label: 'Wed', value: 85 },
-        { label: 'Thu', value: 35 },
-        { label: 'Fri', value: 90 },
-        { label: 'Sat', value: 55 },
-        { label: 'Sun', value: 75 },
-    ];
-
-    return (
-        <div className="chart-placeholder">
-            {data.map((item, i) => (
-                <div key={i} className="chart-bar-wrap">
-                    <div
-                        className="chart-bar"
-                        style={{ height: `${item.value}%` }}
-                        data-value={`${item.value}%`}
-                    />
-                    <span className="chart-label">{item.label}</span>
-                </div>
-            ))}
-        </div>
-    );
-};
+const UPCOMING_SESSIONS = [
+    { id: 1, day: '02', month: 'July 2026', name: 'Sharvari Shobhane', time: '2.30 - 3.30pm Online' },
+    { id: 2, day: '05', month: 'July 2026', name: 'Sudhir Nair', time: '5 - 6pm Online' },
+    { id: 3, day: '08', month: 'July 2026', name: 'Aditi Chavan', time: '2.30 - 3.30pm Online' },
+    { id: 4, day: '15', month: 'July 2026', name: 'Rahul Patil', time: '2.30 - 3.30pm Online' },
+    { id: 5, day: '22', month: 'July 2026', name: 'Gayatri Mahadik', time: '2.30 - 3.30pm Online' },
+    { id: 6, day: '25', month: 'July 2026', name: 'Gayatri Mahadik', time: '2.30 - 3.30pm Online' },
+    { id: 7, day: '26', month: 'July 2026', name: 'Gayatri Mahadik', time: '2.30 - 3.30pm Online' },
+    { id: 8, day: '27', month: 'July 2026', name: 'Gayatri Mahadik', time: '2.30 - 3.30pm Online' }
+];
 
 const Overview = () => {
     const { user } = useAuth();
-    const navigate = useNavigate();
-    const { data: batchesData, isLoading: isLoadingBatches, isError: isBatchesError } = useMentorBatches();
-    const { data: meetingsData, isLoading: isLoadingMeetings, isError: isMeetingsError } = useMentorMeetings({ limit: 5, filter: 'upcoming' });
 
-    const batches = Array.isArray(batchesData) ? batchesData : [];
-    const totalStudents = batches.reduce((acc, b) => acc + (b.studentsCount ?? b.studentCount ?? 0), 0);
-    const totalBatches = batches.length;
-    const totalResources = batches.reduce((acc, b) => acc + (b.resourcesCount ?? 0), 0);
-    const upcomingMeetings = Array.isArray(meetingsData) ? meetingsData : (meetingsData?.items ?? []);
+    // Navigation state to Mentee Details view
+    const [selectedMentee, setSelectedMentee] = useState(null);
 
-    const currentTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-    const currentDate = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    // Modal state
+    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+    const [isCsrModalOpen, setIsCsrModalOpen] = useState(false);
+    const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
+    const [activeMenteeForSchedule, setActiveMenteeForSchedule] = useState('Rahul Patil');
+    const [activeMenteeForCsr, setActiveMenteeForCsr] = useState('Rahul Patil');
 
-    if (isBatchesError || isMeetingsError) {
+    const handleOpenSchedule = (menteeName = 'Rahul Patil') => {
+        setActiveMenteeForSchedule(menteeName);
+        setIsScheduleModalOpen(true);
+    };
+
+    const handleOpenCsr = (menteeName = 'Rahul Patil') => {
+        setActiveMenteeForCsr(menteeName);
+        setIsCsrModalOpen(true);
+    };
+
+    // If a mentee is selected, display the Mentee Details View (Attachment 1)
+    if (selectedMentee) {
         return (
-            <div className="m-section">
-                <div className="m-empty-state">
-                    <p className="m-empty-state__desc">Failed to load dashboard. Please refresh the page.</p>
-                </div>
-            </div>
+            <>
+                <MenteeDetailsView
+                    mentee={selectedMentee}
+                    onBack={() => setSelectedMentee(null)}
+                    onOpenScheduleModal={handleOpenSchedule}
+                    onOpenCsrModal={handleOpenCsr}
+                />
+
+                {/* Modals */}
+                <ScheduleCallModal
+                    isOpen={isScheduleModalOpen}
+                    onClose={() => setIsScheduleModalOpen(false)}
+                    mentees={MENTEES_LIST}
+                    defaultMentee={activeMenteeForSchedule}
+                />
+
+                <CsrFeedbackModal
+                    isOpen={isCsrModalOpen}
+                    onClose={() => setIsCsrModalOpen(false)}
+                    mentees={MENTEES_LIST}
+                    menteeName={activeMenteeForCsr}
+                />
+            </>
         );
     }
 
+    // Default: Main Mentor Dashboard Landing View (Attachment 2)
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-            {/* 1. ENTERPRISE HEADER LIKE ADMIN SECTION */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <h1 className="page-title-enterprise" style={{ fontSize: '24px', fontWeight: '600', color: 'var(--admin-text-primary, #111827)', margin: 0 }}>
-                        👋 Hello, {user?.name?.split(' ')[0] || 'Mentor'}!
+        <div className="kp-ml-wrapper">
+            {/* Header Section */}
+            <header className="kp-ml-header">
+                <div>
+                    <h1 className="kp-ml-header-title">
+                        Welcome, {user?.name || 'Rakesh Kamble'}
                     </h1>
-                    <p className="page-subtitle-enterprise" style={{ fontSize: '14px', color: 'var(--admin-text-secondary, #6B7280)', margin: 0 }}>
-                        {currentDate} · {currentTime}
-                    </p>
+                    <div className="kp-ml-status-pill">
+                        <span className="kp-ml-status-dot"></span>
+                        Excellent Performance <span className="kp-ml-status-divider">•</span> ratings 4.8 / 5
+                    </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span className="badge badge-primary" style={{ padding: '6px 14px', borderRadius: '8px', background: '#EEF2FF', color: '#4F46E5', fontWeight: '600', fontSize: '13px' }}>
-                        Live Mentor Workspace
-                    </span>
+
+                <div className="kp-ml-header-actions">
                     <button
-                        className="btn-admin-primary"
-                        style={{ height: '38px', padding: '0 16px', fontSize: '13.5px' }}
-                        onClick={() => navigate('/mentor/sessions')}
+                        className="kp-ml-btn-outline"
+                        onClick={() => setIsAvailabilityModalOpen(true)}
                     >
-                        <Plus size={16} /> New Session
+                        Mark Availability
+                    </button>
+                    <button
+                        className="kp-ml-btn-dark"
+                        onClick={() => handleOpenSchedule('Rahul Patil')}
+                    >
+                        Schedule Call
+                        <FiCalendar size={16} />
                     </button>
                 </div>
-            </div>
+            </header>
 
-            {/* 2. STAT CARDS EXACTLY LIKE ADMIN SECTION */}
-            <div className="stats-grid" style={{ marginBottom: '8px' }}>
-                <div className="stat-card-enterprise">
-                    <div className="stat-header">
-                        <div className="stat-icon-wrapper" style={{ background: 'rgba(79, 70, 229, 0.08)', color: '#4F46E5' }}>
-                            <Users size={20} />
-                        </div>
-                        <span className="stat-label-enterprise">Total Mentees</span>
+            {/* Performance KPIs Section */}
+            <section className="kp-ml-kpi-section">
+                <h2 className="kp-ml-kpi-title">Performance KPI's</h2>
+                <div className="kp-ml-kpi-grid">
+                    {/* Card 1 */}
+                    <div className="kp-ml-kpi-card">
+                        <h3 className="kp-ml-kpi-label">Overall Rating</h3>
+                        <p className="kp-ml-kpi-value">4.8</p>
+                        <p className="kp-ml-kpi-subtext">Excellent</p>
                     </div>
-                    <span className="stat-val-enterprise"><CountUp value={totalStudents} /></span>
-                </div>
 
-                <div className="stat-card-enterprise">
-                    <div className="stat-header">
-                        <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10B981' }}>
-                            <Video size={20} />
-                        </div>
-                        <span className="stat-label-enterprise">Active Batches</span>
+                    {/* Card 2 */}
+                    <div className="kp-ml-kpi-card">
+                        <h3 className="kp-ml-kpi-label">Mentoring hours</h3>
+                        <p className="kp-ml-kpi-value">142h</p>
+                        <p className="kp-ml-kpi-subtext">this cycle</p>
                     </div>
-                    <span className="stat-val-enterprise"><CountUp value={totalBatches} /></span>
-                </div>
 
-                <div className="stat-card-enterprise">
-                    <div className="stat-header">
-                        <div className="stat-icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B' }}>
-                            <FileText size={20} />
-                        </div>
-                        <span className="stat-label-enterprise">Total Resources</span>
+                    {/* Card 3 */}
+                    <div className="kp-ml-kpi-card">
+                        <h3 className="kp-ml-kpi-label">Rewards Points</h3>
+                        <p className="kp-ml-kpi-value">3,250</p>
+                        <p className="kp-ml-kpi-subtext">+180 recent</p>
                     </div>
-                    <span className="stat-val-enterprise"><CountUp value={totalResources} /></span>
-                </div>
 
-                <div className="stat-card-enterprise">
-                    <div className="stat-header">
-                        <div className="stat-icon-wrapper" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444' }}>
-                            <Calendar size={20} />
-                        </div>
-                        <span className="stat-label-enterprise">Scheduled Meetings</span>
+                    {/* Card 4 */}
+                    <div className="kp-ml-kpi-card">
+                        <h3 className="kp-ml-kpi-label">Mentees Assigned</h3>
+                        <p className="kp-ml-kpi-value">6</p>
+                        <p className="kp-ml-kpi-subtext">2 new added</p>
                     </div>
-                    <span className="stat-val-enterprise"><CountUp value={upcomingMeetings.length} /></span>
+
+                    {/* Card 5 */}
+                    <div className="kp-ml-kpi-card">
+                        <h3 className="kp-ml-kpi-label">Sessions Conducted</h3>
+                        <p className="kp-ml-kpi-value">20</p>
+                        <p className="kp-ml-kpi-subtext">Excellent</p>
+                    </div>
                 </div>
-            </div>
+            </section>
 
-            {/* 3. MAIN DASHBOARD CONTENT GRID */}
-            <div className="dashboard-grid">
-                <div className="dashboard-main">
-                    {/* Performance & Attention Section */}
-                    <section className="performance-section">
-                        <div className="m-card performance-card" style={{ background: 'var(--admin-surface, #fff)', border: '1px solid var(--admin-border-color, #E5E7EB)', borderRadius: '14px', padding: '24px' }}>
-                            <div className="flex-between" style={{ marginBottom: 'var(--space-20)' }}>
-                                <h3 className="m-section-title" style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--admin-text-primary)' }}>
-                                    <TrendingUp size={18} style={{ marginRight: '8px' }} />
-                                    Weekly Engagement Overview
-                                </h3>
-                                <div className="m-badge m-badge--info">Last 7 Days</div>
-                            </div>
-                            <PerformanceChart />
-                            <div className="stat-grid-v2" style={{ marginTop: 'var(--space-24)', gap: 'var(--space-12)' }}>
-                                <div>
-                                    <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--admin-text-muted)' }}>Completion Rate</div>
-                                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--admin-text-primary)' }}>94%</div>
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--admin-text-muted)' }}>Avg. Assessment Score</div>
-                                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--admin-text-primary)' }}>8.4 / 10</div>
-                                </div>
-                            </div>
-                        </div>
+            {/* Main Content Grid */}
+            <div className="kp-ml-main-grid">
+                {/* Left Column: Assigned Mentees */}
+                <div className="kp-ml-panel">
+                    <h2 className="kp-ml-panel-title">Assigned Mentees</h2>
 
-                        <div className="m-card" style={{ background: 'var(--admin-surface, #fff)', border: '1px solid var(--admin-border-color, #E5E7EB)', borderRadius: '14px', padding: '24px' }}>
-                            <h3 className="m-section-title" style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: 'var(--admin-text-primary)' }}>
-                                <AlertCircle size={18} style={{ marginRight: '8px' }} />
-                                Attention Needed
-                            </h3>
-                            <div className="risk-list">
-                                {[
-                                    { name: 'Aman Kumar', risk: 'High', color: 'danger' },
-                                    { name: 'Priya Singh', risk: 'Medium', color: 'warning' },
-                                    { name: 'Rahul Verma', risk: 'Low', color: 'info' },
-                                ].map((student, i) => (
-                                    <div key={i} className="risk-item" style={{ padding: '10px 0', borderBottom: '1px solid var(--admin-border-color)' }}>
-                                        <div className="m-user-row">
-                                            <div className="m-user-avatar" style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(79, 70, 229, 0.1)', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                                                {student.name[0]}
-                                            </div>
-                                            <div>
-                                                <div className="m-user-name" style={{ fontSize: '13.5px', fontWeight: '500', color: 'var(--admin-text-primary)' }}>{student.name}</div>
-                                                <div style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>7d Inactive</div>
-                                            </div>
-                                        </div>
-                                        <div className={`m-badge m-badge--${student.color}`}>{student.risk}</div>
+                    {/* Table Header */}
+                    <div className="kp-ml-table-header">
+                        <div>List of Mentees</div>
+                        <div>Progress</div>
+                        <div style={{ textAlign: 'center' }}>Sessions</div>
+                        <div style={{ textAlign: 'right', paddingRight: '20px' }}>Action</div>
+                    </div>
+
+                    {/* Table Body */}
+                    <div className="kp-ml-table-body">
+                        {MENTEES_LIST.map((mentee) => (
+                            <div key={mentee.id} className="kp-ml-table-row">
+                                <div className="kp-ml-mentee-cell">
+                                    <div className="kp-ml-avatar-circle"></div>
+                                    <div>
+                                        <p className="kp-ml-mentee-name">{mentee.name}</p>
+                                        <p className="kp-ml-mentee-id">{mentee.roll}</p>
                                     </div>
-                                ))}
-                            </div>
-                            <button
-                                className="btn-admin-outline"
-                                style={{ width: '100%', marginTop: '16px', height: '38px', fontSize: '13px', justifyContent: 'center' }}
-                                onClick={() => navigate('/mentor/mentorship')}
-                            >
-                                View All Students
-                            </button>
-                        </div>
-                    </section>
+                                </div>
 
-                    {/* Upcoming Meetings Section */}
-                    <section className="m-card" style={{ background: 'var(--admin-surface, #fff)', border: '1px solid var(--admin-border-color, #E5E7EB)', borderRadius: '14px', padding: '24px' }}>
-                        <div className="flex-between" style={{ marginBottom: 'var(--space-20)' }}>
-                            <h3 className="m-section-title" style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--admin-text-primary)' }}>
-                                <Calendar size={18} style={{ marginRight: '8px' }} />
-                                Upcoming Meetings
-                            </h3>
-                            <button className="btn-admin-outline" style={{ height: '32px', padding: '0 12px', fontSize: '12px' }} onClick={() => navigate('/mentor/batches')}>
-                                View All Batches
-                            </button>
-                        </div>
-
-                        {isLoadingMeetings ? (
-                            <div className="meetings-grid-v2">
-                                {[1, 2].map(i => <div key={i} className="m-skeleton m-skeleton--h80" />)}
-                            </div>
-                        ) : upcomingMeetings.length > 0 ? (
-                            <div className="meetings-grid-v2">
-                                {upcomingMeetings.map((mtg) => (
-                                    <div key={mtg.id} className="meeting-card-v2" style={{ background: 'var(--admin-bg)', border: '1px solid var(--admin-border-color)', borderRadius: '10px', padding: '16px' }}>
-                                        <div className="meeting-user">
-                                            <div className="m-user-avatar meeting-avatar" style={{ borderRadius: '50%', background: 'rgba(79, 70, 229, 0.1)', color: '#4F46E5', fontWeight: 'bold' }}>
-                                                {(mtg.title || 'M')[0]}
-                                            </div>
-                                            <div className="meeting-info">
-                                                <h4 style={{ margin: '0 0 4px', fontSize: '14px', color: 'var(--admin-text-primary)' }}>{mtg.title}</h4>
-                                                <div className="meeting-time-wrap" style={{ fontSize: '12px', color: 'var(--admin-text-muted)' }}>
-                                                    <Clock size={14} />
-                                                    <span>{new Date(mtg.scheduled_at || mtg.meetingDate || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                    <span className="countdown-badge">Scheduled</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="meeting-actions">
-                                            {mtg.meeting_link && (
-                                                <a href={mtg.meeting_link} target="_blank" rel="noreferrer" className="btn-admin-primary" style={{ height: '32px', padding: '0 12px', fontSize: '12px', textDecoration: 'none' }}>
-                                                    Join Call
-                                                </a>
-                                            )}
-                                        </div>
+                                <div className="kp-ml-progress-cell">
+                                    <div className="kp-ml-progress-track">
+                                        <div
+                                            className="kp-ml-progress-fill"
+                                            style={{ width: `${mentee.progress}%` }}
+                                        ></div>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="m-empty-state" style={{ padding: '32px', textAlign: 'center', color: 'var(--admin-text-muted)' }}>
-                                <Calendar size={36} style={{ opacity: 0.3, marginBottom: '8px' }} />
-                                <p style={{ margin: 0, fontSize: '14px' }}>No live meetings scheduled for today.</p>
-                            </div>
-                        )}
-                    </section>
-                </div>
+                                    <p className="kp-ml-progress-text">{mentee.progress}%</p>
+                                </div>
 
-                {/* 4. ACTIVITY FEED (RIGHT SIDEBAR) */}
-                <aside className="m-card dashboard-sidebar" style={{ background: 'var(--admin-surface, #fff)', border: '1px solid var(--admin-border-color, #E5E7EB)', borderRadius: '14px', padding: '24px' }}>
-                    <h3 className="m-section-title" style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: '600', color: 'var(--admin-text-primary)' }}>
-                        <TrendingUp size={18} style={{ marginRight: '8px' }} />
-                        Recent Activity
-                    </h3>
-                    <div className="timeline">
-                        {[
-                            { title: 'Assignment Reviewed', desc: 'Reviewed Web Architecture task for Anita', time: '15m ago', icon: CheckCircle2 },
-                            { title: 'New Mentee Joined', desc: 'Prasad Wadkar joined Full Stack 2026', time: '1h ago', icon: Users },
-                            { title: 'Session Live', desc: 'Decoupled Drupal 11 Overview uploaded', time: '3h ago', icon: Video },
-                            { title: 'Cohort Notice Broadcasted', desc: 'Upcoming holiday schedule published', time: 'Yesterday', icon: FileText },
-                        ].map((item, i) => (
-                            <div key={i} className="timeline-item" style={{ display: 'flex', gap: '12px', padding: '10px 0', borderBottom: '1px solid var(--admin-border-color)' }}>
-                                <div className="timeline-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4F46E5', marginTop: '6px' }} />
-                                <div className="timeline-content">
-                                    <div className="timeline-title" style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--admin-text-primary)' }}>{item.title}</div>
-                                    <div className="timeline-time" style={{ fontSize: '11px', color: 'var(--admin-text-muted)', marginBottom: '2px' }}>{item.time}</div>
-                                    <div className="timeline-desc" style={{ fontSize: '12.5px', color: 'var(--admin-text-secondary)' }}>{item.desc}</div>
+                                <div className="kp-ml-session-cell">{mentee.sessions}</div>
+
+                                <div className="kp-ml-action-cell">
+                                    <button
+                                        className="kp-ml-btn-table-action"
+                                        onClick={() => setSelectedMentee(mentee)}
+                                    >
+                                        View Details
+                                    </button>
                                 </div>
                             </div>
                         ))}
                     </div>
-                </aside>
+
+                    {/* View All Mentees Button */}
+                    <div className="kp-ml-view-all-wrap">
+                        <button
+                            className="kp-ml-btn-view-all"
+                            onClick={() => setSelectedMentee(MENTEES_LIST[2])} /* Opens Rahul Patil details */
+                        >
+                            View all mentees
+                        </button>
+                    </div>
+                </div>
+
+                {/* Right Column: Upcoming Sessions */}
+                <div className="kp-ml-panel">
+                    <h2 className="kp-ml-panel-title">Upcoming Sessions</h2>
+
+                    <div className="kp-ml-sessions-list">
+                        {UPCOMING_SESSIONS.map((session) => (
+                            <div key={session.id} className="kp-ml-session-item">
+                                <div className="kp-ml-session-info">
+                                    <div className="kp-ml-session-date-box">
+                                        <div className="kp-ml-session-date-day">{session.day}</div>
+                                        <div className="kp-ml-session-date-month">{session.month}</div>
+                                    </div>
+                                    <div className="kp-ml-session-name">{session.name}</div>
+                                </div>
+                                <div className="kp-ml-session-badge">{session.time}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
+
+            {/* Modals */}
+            <ScheduleCallModal
+                isOpen={isScheduleModalOpen}
+                onClose={() => setIsScheduleModalOpen(false)}
+                mentees={MENTEES_LIST}
+                defaultMentee={activeMenteeForSchedule}
+            />
+
+            <CsrFeedbackModal
+                isOpen={isCsrModalOpen}
+                onClose={() => setIsCsrModalOpen(false)}
+                mentees={MENTEES_LIST}
+                menteeName={activeMenteeForCsr}
+            />
+
+            <MarkAvailabilityModal
+                isOpen={isAvailabilityModalOpen}
+                onClose={() => setIsAvailabilityModalOpen(false)}
+            />
         </div>
     );
 };

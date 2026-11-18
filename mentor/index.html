@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mentor Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+    </style>
+</head>
+<body class="text-gray-900 antialiased px-6 py-8 max-w-[95%] mx-auto relative">
+
+    <!-- Header Section -->
+    <header class="flex justify-between items-start mb-8">
+        <div>
+            <h1 class="text-[32px] font-bold tracking-tight mb-2">Welcome, Rakesh Kamble</h1>
+            <div class="inline-flex items-center bg-[#E8EAEB] rounded-full px-4 py-1.5 text-sm font-medium text-gray-700">
+                <span class="w-2.5 h-2.5 bg-[#4ADE80] rounded-full mr-2.5"></span>
+                Excellent Performance <span class="mx-2 text-gray-400">•</span> ratings 4.8 / 5
+            </div>
+        </div>
+        <div class="flex gap-4 pt-1">
+            <button class="px-5 py-2 border border-gray-400 bg-white rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
+                Mark Availability
+            </button>
+            <button id="openModalBtn" class="px-5 py-2 bg-[#2D2D2D] text-white rounded-md text-sm font-medium hover:bg-black transition-colors flex items-center gap-2 shadow-md">
+                Schedule <br class="hidden"> Call
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Performance KPIs -->
+    <section class="mb-10">
+        <h2 class="text-[17px] font-bold mb-4">Performance KPI's</h2>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-5">
+            <div class="bg-[#F0F1F3] rounded-xl p-5 shadow-sm border border-gray-100">
+                <h3 class="text-sm font-semibold mb-2">Overall Rating</h3>
+                <p class="text-[32px] font-bold leading-none mb-2">4.8</p>
+                <p class="text-sm text-gray-600">Excellent</p>
+            </div>
+            <div class="bg-[#F0F1F3] rounded-xl p-5 shadow-sm border border-gray-100">
+                <h3 class="text-sm font-semibold mb-2">Mentoring hours</h3>
+                <p class="text-[32px] font-bold leading-none mb-2">142h</p>
+                <p class="text-sm text-gray-600">this cycle</p>
+            </div>
+            <div class="bg-[#F0F1F3] rounded-xl p-5 shadow-sm border border-gray-100">
+                <h3 class="text-sm font-semibold mb-2">Rewards Points</h3>
+                <p class="text-[32px] font-bold leading-none mb-2">3,250</p>
+                <p class="text-sm text-gray-600">+180 recent</p>
+            </div>
+            <div class="bg-[#F0F1F3] rounded-xl p-5 shadow-sm border border-gray-100">
+                <h3 class="text-sm font-semibold mb-2">Mentees Assigned</h3>
+                <p class="text-[32px] font-bold leading-none mb-2">6</p>
+                <p class="text-sm text-gray-600">2 new added</p>
+            </div>
+            <div class="bg-[#F0F1F3] rounded-xl p-5 shadow-sm border border-gray-100">
+                <h3 class="text-sm font-semibold mb-2">Sessions Conducted</h3>
+                <p class="text-[32px] font-bold leading-none mb-2">20</p>
+                <p class="text-sm text-gray-600">Excellent</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+        
+        <!-- Left Column: Assigned Mentees -->
+        <div class="lg:col-span-2 bg-[#F7F8F9] border border-gray-200 rounded-2xl p-5 shadow-[0_8px_24px_-5px_rgba(0,0,0,0.08)] flex flex-col h-full">
+            <h2 class="text-lg font-bold mb-4">Assigned Mentees</h2>
+            
+            <!-- Table Header -->
+            <div class="grid grid-cols-12 px-3 py-3 bg-white border border-gray-200 rounded-md text-[14.5px] font-medium text-gray-800 mb-2 shadow-sm">
+                <div class="col-span-4">List of Mentees</div>
+                <div class="col-span-4">Progress</div>
+                <div class="col-span-2 text-center">Sessions</div>
+                <!-- Action shifted left slightly to visually center over the buttons -->
+                <div class="col-span-2 text-right pr-5">Action</div>
+            </div>
+
+            <!-- List Rows -->
+            <div class="flex flex-col flex-1">
+                
+                <!-- Row 1 -->
+                <div class="grid grid-cols-12 items-center px-3 py-2.5 border-b border-gray-200/70 hover:bg-gray-100/50 transition-colors">
+                    <div class="col-span-4 flex items-center gap-3">
+                        <div class="w-9 h-9 bg-[#D4D4D4] rounded-full shrink-0 shadow-inner"></div>
+                        <div>
+                            <p class="text-[14.5px] font-medium leading-tight">Sharvari Shobhane</p>
+                            <p class="text-[11px] text-gray-500 mt-0.5">PUN/20-21/0010</p>
+                        </div>
+                    </div>
+                    <div class="col-span-4 pr-6">
+                        <div class="w-full bg-[#D1D5DB] h-2 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
+                            <div class="bg-[#8F939A] h-full rounded-full" style="width: 72%"></div>
+                        </div>
+                        <p class="text-[12px] text-gray-500 mt-1">72%</p>
+                    </div>
+                    <div class="col-span-2 text-[14.5px] font-medium text-gray-700 text-center">6/12</div>
+                    <div class="col-span-2 text-right translate-x-2">
+                        <a href="mentee-details.html">
+                            <button class="px-3.5 py-1.5 border border-gray-300 bg-white rounded text-[13px] text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm inline-block">View Details</button>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Row 2 -->
+                <div class="grid grid-cols-12 items-center px-3 py-2.5 border-b border-gray-200/70 hover:bg-gray-100/50 transition-colors">
+                    <div class="col-span-4 flex items-center gap-3">
+                        <div class="w-9 h-9 bg-[#D4D4D4] rounded-full shrink-0 shadow-inner"></div>
+                        <div>
+                            <p class="text-[14.5px] font-medium leading-tight">Neha Patel</p>
+                            <p class="text-[11px] text-gray-500 mt-0.5">PUN/20-21/0011</p>
+                        </div>
+                    </div>
+                    <div class="col-span-4 pr-6">
+                        <div class="w-full bg-[#D1D5DB] h-2 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
+                            <div class="bg-[#8F939A] h-full rounded-full" style="width: 32%"></div>
+                        </div>
+                        <p class="text-[12px] text-gray-500 mt-1">32%</p>
+                    </div>
+                    <div class="col-span-2 text-[14.5px] font-medium text-gray-700 text-center">3/12</div>
+                    <div class="col-span-2 text-right translate-x-2">
+                        <a href="mentee-details.html">
+                            <button class="px-3.5 py-1.5 border border-gray-300 bg-white rounded text-[13px] text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm inline-block">View Details</button>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Row 3 -->
+                <div class="grid grid-cols-12 items-center px-3 py-2.5 border-b border-gray-200/70 hover:bg-gray-100/50 transition-colors">
+                    <div class="col-span-4 flex items-center gap-3">
+                        <div class="w-9 h-9 bg-[#D4D4D4] rounded-full shrink-0 shadow-inner"></div>
+                        <div>
+                            <p class="text-[14.5px] font-medium leading-tight">Rahul Patil</p>
+                            <p class="text-[11px] text-gray-500 mt-0.5">PUN/20-21/0012</p>
+                        </div>
+                    </div>
+                    <div class="col-span-4 pr-6">
+                        <div class="w-full bg-[#D1D5DB] h-2 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
+                            <div class="bg-[#8F939A] h-full rounded-full" style="width: 50%"></div>
+                        </div>
+                        <p class="text-[12px] text-gray-500 mt-1">50%</p>
+                    </div>
+                    <div class="col-span-2 text-[14.5px] font-medium text-gray-700 text-center">6/12</div>
+                    <div class="col-span-2 text-right translate-x-2">
+                        <a href="mentee-details.html">
+                            <button class="px-3.5 py-1.5 border border-gray-300 bg-white rounded text-[13px] text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm inline-block">View Details</button>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Row 4 -->
+                <div class="grid grid-cols-12 items-center px-3 py-2.5 border-b border-gray-200/70 hover:bg-gray-100/50 transition-colors">
+                    <div class="col-span-4 flex items-center gap-3">
+                        <div class="w-9 h-9 bg-[#D4D4D4] rounded-full shrink-0 shadow-inner"></div>
+                        <div>
+                            <p class="text-[14.5px] font-medium leading-tight">Gayatri Mahadik</p>
+                            <p class="text-[11px] text-gray-500 mt-0.5">PUN/20-21/0013</p>
+                        </div>
+                    </div>
+                    <div class="col-span-4 pr-6">
+                        <div class="w-full bg-[#D1D5DB] h-2 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
+                            <div class="bg-[#8F939A] h-full rounded-full" style="width: 50%"></div>
+                        </div>
+                        <p class="text-[12px] text-gray-500 mt-1">50%</p>
+                    </div>
+                    <div class="col-span-2 text-[14.5px] font-medium text-gray-700 text-center">6/12</div>
+                    <div class="col-span-2 text-right translate-x-2">
+                        <a href="mentee-details.html">
+                            <button class="px-3.5 py-1.5 border border-gray-300 bg-white rounded text-[13px] text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm inline-block">View Details</button>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Row 5 -->
+                <div class="grid grid-cols-12 items-center px-3 py-2.5 border-b border-gray-200/70 hover:bg-gray-100/50 transition-colors">
+                    <div class="col-span-4 flex items-center gap-3">
+                        <div class="w-9 h-9 bg-[#D4D4D4] rounded-full shrink-0 shadow-inner"></div>
+                        <div>
+                            <p class="text-[14.5px] font-medium leading-tight">Aditya Badhe</p>
+                            <p class="text-[11px] text-gray-500 mt-0.5">PUN/20-21/0014</p>
+                        </div>
+                    </div>
+                    <div class="col-span-4 pr-6">
+                        <div class="w-full bg-[#D1D5DB] h-2 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
+                            <div class="bg-[#8F939A] h-full rounded-full" style="width: 50%"></div>
+                        </div>
+                        <p class="text-[12px] text-gray-500 mt-1">50%</p>
+                    </div>
+                    <div class="col-span-2 text-[14.5px] font-medium text-gray-700 text-center">6/12</div>
+                    <div class="col-span-2 text-right translate-x-2">
+                        <a href="mentee-details.html">
+                            <button class="px-3.5 py-1.5 border border-gray-300 bg-white rounded text-[13px] text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm inline-block">View Details</button>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Row 6 -->
+                <div class="grid grid-cols-12 items-center px-3 py-2.5 border-b border-gray-200/70 hover:bg-gray-100/50 transition-colors">
+                    <div class="col-span-4 flex items-center gap-3">
+                        <div class="w-9 h-9 bg-[#D4D4D4] rounded-full shrink-0 shadow-inner"></div>
+                        <div>
+                            <p class="text-[14.5px] font-medium leading-tight">Sudhir Nair</p>
+                            <p class="text-[11px] text-gray-500 mt-0.5">PUN/20-21/0015</p>
+                        </div>
+                    </div>
+                    <div class="col-span-4 pr-6">
+                        <div class="w-full bg-[#D1D5DB] h-2 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
+                            <div class="bg-[#8F939A] h-full rounded-full" style="width: 50%"></div>
+                        </div>
+                        <p class="text-[12px] text-gray-500 mt-1">50%</p>
+                    </div>
+                    <div class="col-span-2 text-[14.5px] font-medium text-gray-700 text-center">6/12</div>
+                    <div class="col-span-2 text-right translate-x-2">
+                        <a href="mentee-details.html">
+                            <button class="px-3.5 py-1.5 border border-gray-300 bg-white rounded text-[13px] text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm inline-block">View Details</button>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Row 7 -->
+                <div class="grid grid-cols-12 items-center px-3 py-2.5 border-b border-gray-200/70 hover:bg-gray-100/50 transition-colors">
+                    <div class="col-span-4 flex items-center gap-3">
+                        <div class="w-9 h-9 bg-[#D4D4D4] rounded-full shrink-0 shadow-inner"></div>
+                        <div>
+                            <p class="text-[14.5px] font-medium leading-tight">Aditi Chavan</p>
+                            <p class="text-[11px] text-gray-500 mt-0.5">PUN/20-21/0016</p>
+                        </div>
+                    </div>
+                    <div class="col-span-4 pr-6">
+                        <div class="w-full bg-[#D1D5DB] h-2 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
+                            <div class="bg-[#8F939A] h-full rounded-full" style="width: 50%"></div>
+                        </div>
+                        <p class="text-[12px] text-gray-500 mt-1">50%</p>
+                    </div>
+                    <div class="col-span-2 text-[14.5px] font-medium text-gray-700 text-center">6/12</div>
+                    <div class="col-span-2 text-right translate-x-2">
+                        <a href="mentee-details.html">
+                            <button class="px-3.5 py-1.5 border border-gray-300 bg-white rounded text-[13px] text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm inline-block">View Details</button>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Row 8 -->
+                <div class="grid grid-cols-12 items-center px-3 py-2.5 hover:bg-gray-100/50 transition-colors">
+                    <div class="col-span-4 flex items-center gap-3">
+                        <div class="w-9 h-9 bg-[#D4D4D4] rounded-full shrink-0 shadow-inner"></div>
+                        <div>
+                            <p class="text-[14.5px] font-medium leading-tight">Bhargav Gondaliya</p>
+                            <p class="text-[11px] text-gray-500 mt-0.5">PUN/20-21/0017</p>
+                        </div>
+                    </div>
+                    <div class="col-span-4 pr-6">
+                        <div class="w-full bg-[#D1D5DB] h-2 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
+                            <div class="bg-[#8F939A] h-full rounded-full" style="width: 50%"></div>
+                        </div>
+                        <p class="text-[12px] text-gray-500 mt-1">50%</p>
+                    </div>
+                    <div class="col-span-2 text-[14.5px] font-medium text-gray-700 text-center">6/12</div>
+                    <div class="col-span-2 text-right translate-x-2">
+                        <a href="mentee-details.html">
+                            <button class="px-3.5 py-1.5 border border-gray-300 bg-white rounded text-[13px] text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm inline-block">View Details</button>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- View All Mentees Button -->
+            <div class="mt-4 pt-4 flex justify-center border-t border-gray-200">
+                <button class="px-8 py-2 border border-gray-300 bg-white rounded-md text-[14px] font-medium text-gray-700 hover:bg-gray-50 transition-colors w-full sm:w-auto text-center shadow-sm">
+                    View all mentees
+                </button>
+            </div>
+            
+        </div>
+
+        <!-- Right Column: Upcoming Sessions -->
+        <div class="bg-[#F7F8F9] border border-gray-200 rounded-2xl p-5 shadow-[0_8px_24px_-5px_rgba(0,0,0,0.08)] flex flex-col h-full">
+            <h2 class="text-lg font-bold mb-4">Upcoming Sessions</h2>
+            
+            <div class="flex flex-col flex-1 justify-between">
+                <!-- Session 1 -->
+                <div class="flex items-center justify-between border-b border-gray-200/60 pb-3">
+                    <div class="flex items-center gap-8">
+                        <div class="text-center w-14 shrink-0">
+                            <div class="text-xl font-bold leading-none">02</div>
+                            <div class="text-[10px] text-gray-600 mt-1 font-medium">July 2026</div>
+                        </div>
+                        <div class="text-[15px] text-gray-800 font-medium">Sharvari Shobhane</div>
+                    </div>
+                    <div class="text-[11px] bg-[#D7D9DE] px-3 py-1.5 rounded-full text-gray-800 font-medium whitespace-nowrap w-[130px] text-center shrink-0">
+                        2.30 - 3.30pm Online
+                    </div>
+                </div>
+
+                <!-- Session 2 -->
+                <div class="flex items-center justify-between border-b border-gray-200/60 pb-3">
+                    <div class="flex items-center gap-8">
+                        <div class="text-center w-14 shrink-0">
+                            <div class="text-xl font-bold leading-none">05</div>
+                            <div class="text-[10px] text-gray-600 mt-1 font-medium">July 2026</div>
+                        </div>
+                        <div class="text-[15px] text-gray-800 font-medium">Sudhir Nair</div>
+                    </div>
+                    <div class="text-[11px] bg-[#D7D9DE] px-3 py-1.5 rounded-full text-gray-800 font-medium whitespace-nowrap w-[130px] text-center shrink-0">
+                        5 - 6pm Online
+                    </div>
+                </div>
+
+                <!-- Session 3 -->
+                <div class="flex items-center justify-between border-b border-gray-200/60 pb-3">
+                    <div class="flex items-center gap-8">
+                        <div class="text-center w-14 shrink-0">
+                            <div class="text-xl font-bold leading-none">08</div>
+                            <div class="text-[10px] text-gray-600 mt-1 font-medium">July 2026</div>
+                        </div>
+                        <div class="text-[15px] text-gray-800 font-medium">Aditi Chavan</div>
+                    </div>
+                    <div class="text-[11px] bg-[#D7D9DE] px-3 py-1.5 rounded-full text-gray-800 font-medium whitespace-nowrap w-[130px] text-center shrink-0">
+                        2.30 - 3.30pm Online
+                    </div>
+                </div>
+
+                <!-- Session 4 -->
+                <div class="flex items-center justify-between border-b border-gray-200/60 pb-3">
+                    <div class="flex items-center gap-8">
+                        <div class="text-center w-14 shrink-0">
+                            <div class="text-xl font-bold leading-none">15</div>
+                            <div class="text-[10px] text-gray-600 mt-1 font-medium">July 2026</div>
+                        </div>
+                        <div class="text-[15px] text-gray-800 font-medium">Rahul Patil</div>
+                    </div>
+                    <div class="text-[11px] bg-[#D7D9DE] px-3 py-1.5 rounded-full text-gray-800 font-medium whitespace-nowrap w-[130px] text-center shrink-0">
+                        2.30 - 3.30pm Online
+                    </div>
+                </div>
+
+                <!-- Session 5 -->
+                <div class="flex items-center justify-between border-b border-gray-200/60 pb-3">
+                    <div class="flex items-center gap-8">
+                        <div class="text-center w-14 shrink-0">
+                            <div class="text-xl font-bold leading-none">22</div>
+                            <div class="text-[10px] text-gray-600 mt-1 font-medium">July 2026</div>
+                        </div>
+                        <div class="text-[15px] text-gray-800 font-medium">Gayatri Mahadik</div>
+                    </div>
+                    <div class="text-[11px] bg-[#D7D9DE] px-3 py-1.5 rounded-full text-gray-800 font-medium whitespace-nowrap w-[130px] text-center shrink-0">
+                        2.30 - 3.30pm Online
+                    </div>
+                </div>
+
+                <!-- Session 6 -->
+                <div class="flex items-center justify-between border-b border-gray-200/60 pb-3">
+                    <div class="flex items-center gap-8">
+                        <div class="text-center w-14 shrink-0">
+                            <div class="text-xl font-bold leading-none">25</div>
+                            <div class="text-[10px] text-gray-600 mt-1 font-medium">July 2026</div>
+                        </div>
+                        <div class="text-[15px] text-gray-800 font-medium">Gayatri Mahadik</div>
+                    </div>
+                    <div class="text-[11px] bg-[#D7D9DE] px-3 py-1.5 rounded-full text-gray-800 font-medium whitespace-nowrap w-[130px] text-center shrink-0">
+                        2.30 - 3.30pm Online
+                    </div>
+                </div>
+
+                <!-- Session 7 -->
+                <div class="flex items-center justify-between border-b border-gray-200/60 pb-3">
+                    <div class="flex items-center gap-8">
+                        <div class="text-center w-14 shrink-0">
+                            <div class="text-xl font-bold leading-none">26</div>
+                            <div class="text-[10px] text-gray-600 mt-1 font-medium">July 2026</div>
+                        </div>
+                        <div class="text-[15px] text-gray-800 font-medium">Gayatri Mahadik</div>
+                    </div>
+                    <div class="text-[11px] bg-[#D7D9DE] px-3 py-1.5 rounded-full text-gray-800 font-medium whitespace-nowrap w-[130px] text-center shrink-0">
+                        2.30 - 3.30pm Online
+                    </div>
+                </div>
+
+                <!-- Session 8 -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-8">
+                        <div class="text-center w-14 shrink-0">
+                            <div class="text-xl font-bold leading-none">27</div>
+                            <div class="text-[10px] text-gray-600 mt-1 font-medium">July 2026</div>
+                        </div>
+                        <div class="text-[15px] text-gray-800 font-medium">Gayatri Mahadik</div>
+                    </div>
+                    <div class="text-[11px] bg-[#D7D9DE] px-3 py-1.5 rounded-full text-gray-800 font-medium whitespace-nowrap w-[130px] text-center shrink-0">
+                        2.30 - 3.30pm Online
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SCHEDULE CALL MODAL OVERLAY -->
+    <div id="scheduleModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px] transition-opacity">
+        
+        <!-- Modal Box -->
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-[700px] p-7 mx-4 relative">
+            
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-[20px] font-bold text-gray-900">Schedule a Call</h2>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Form -->
+            <div class="grid grid-cols-2 gap-x-5 gap-y-5">
+                
+                <!-- Mentee -->
+                <div>
+                    <label class="block text-[13px] text-gray-700 mb-1.5">Mentee</label>
+                    <div class="relative">
+                        <select class="w-full appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 text-[14px] text-gray-800 focus:outline-none focus:border-gray-500 shadow-sm cursor-pointer">
+                            <option>Rahul Patil</option>
+                        </select>
+                        <!-- Dropdown Chevron -->
+                        <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                </div>
+
+                <!-- Date -->
+                <div>
+                    <label class="block text-[13px] text-gray-700 mb-1.5">Date</label>
+                    <div class="relative">
+                        <input type="text" value="20/07/2026" class="w-full border border-gray-300 rounded-md px-3 py-2 text-[14px] text-gray-800 focus:outline-none focus:border-gray-500 shadow-sm pr-10">
+                        <!-- Calendar Icon -->
+                        <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Time -->
+                <div>
+                    <label class="block text-[13px] text-gray-700 mb-1.5">Time</label>
+                    <div class="relative">
+                        <select class="w-full appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 text-[14px] text-gray-800 focus:outline-none focus:border-gray-500 shadow-sm cursor-pointer">
+                            <option>4.00pm-5.00pm</option>
+                        </select>
+                        <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                </div>
+
+                <!-- Duration -->
+                <div>
+                    <label class="block text-[13px] text-gray-700 mb-1.5">Duration</label>
+                    <input type="text" value="60 mins" class="w-full border border-gray-300 rounded-md px-3 py-2 text-[14px] text-gray-800 focus:outline-none focus:border-gray-500 shadow-sm">
+                </div>
+
+                <!-- Contact Number -->
+                <div>
+                    <label class="block text-[13px] text-gray-700 mb-1.5">Contact Number</label>
+                    <input type="text" value="4567890234" class="w-full border border-gray-300 rounded-md px-3 py-2 text-[14px] text-gray-800 focus:outline-none focus:border-gray-500 shadow-sm">
+                </div>
+
+                <!-- Meeting Link -->
+                <div>
+                    <label class="block text-[13px] text-gray-700 mb-1.5">Meeting Link</label>
+                    <input type="text" value="Paste meeting link" class="w-full border border-gray-300 rounded-md px-3 py-2 text-[14px] text-gray-800 focus:outline-none focus:border-gray-500 shadow-sm">
+                </div>
+
+                <!-- Notes -->
+                <div class="col-span-2">
+                    <label class="block text-[13px] text-gray-700 mb-1.5">Notes</label>
+                    <textarea rows="3" placeholder="Descriptive" class="w-full border border-gray-300 rounded-md px-3 py-2 text-[14px] text-gray-800 focus:outline-none focus:border-gray-500 placeholder-gray-300 shadow-sm"></textarea>
+                </div>
+                
+                <!-- Buttons -->
+                <div class="col-span-2 flex justify-center gap-4 mt-3">
+                    <button id="cancelModalBtn" class="px-7 py-2 border border-gray-400 bg-white rounded-md text-[14px] font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">Cancel</button>
+                    <button class="px-7 py-2 bg-[#2D2D2D] text-white rounded-md text-[14px] font-medium hover:bg-black transition-colors shadow-sm">Schedule & Notify Mentee</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript to Handle Modal Open/Close -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('scheduleModal');
+            const openBtn = document.getElementById('openModalBtn');
+            const closeBtn = document.getElementById('closeModalBtn');
+            const cancelBtn = document.getElementById('cancelModalBtn');
+
+            // Open Modal function
+            const openModal = () => {
+                modal.classList.remove('hidden');
+            };
+
+            // Close Modal function
+            const closeModal = () => {
+                modal.classList.add('hidden');
+            };
+
+            // Event Listeners
+            openBtn.addEventListener('click', openModal);
+            closeBtn.addEventListener('click', closeModal);
+            cancelBtn.addEventListener('click', closeModal);
+
+            // Optional: Close modal if clicking outside the box
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
